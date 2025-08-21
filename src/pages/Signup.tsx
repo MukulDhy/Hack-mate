@@ -8,6 +8,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { BackgroundScene } from '@/components/3d/background-scene';
 import { useAuth } from '@/context/auth-context';
 import { Eye, EyeOff, Mail, Lock, User, Github, Chrome } from 'lucide-react';
+import { showWarning } from '@/components/ui/ToasterMsg';
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,15 +25,42 @@ export default function Signup() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Simulate signup - in real app, you'd create account and validate
-    const user = {
-      id: '1',
-      name: formData.name,
-      email: formData.email,
-      role: 'Developer',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
-    };
-    login(user);
-    navigate('/dashboard');
+    // const user = {
+    //   id: '1',
+    //   name: formData.name,
+    //   email: formData.email,
+    //   role: 'Developer',
+    //   avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
+    // };
+    // login(user);
+    // navigate('/dashboard');
+
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    if(formData.name.trim() === ""){
+      showWarning("Name Can't Be Blank","Validation",3000);
+      return;
+    }
+   if (formData.email.trim() !== "") {
+    const emailRegex = /^[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+    if (!emailRegex.test(formData.email)) {
+      showWarning("Please enter a valid email address", "Validation", 3000);
+      return;
+      }
+    }else{
+      showWarning("Email Can't Be Blank","Validation",3000);
+      return;
+    }
+
+    if(formData.password !== formData.confirmPassword){
+      showWarning("Password must be Same","Validation",3000);
+      setShowPassword(true);
+      setShowConfirmPassword(true);
+      return;
+    }
+
+
   };
 
   return (

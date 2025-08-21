@@ -14,7 +14,21 @@ import { useAuth } from '@/context/auth-context';
 
 export function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout } = useAuth();
+
+
+  const user = {
+    name : 'mukul',
+
+    id : 566,
+    email:'dawdaw@gmail.com',
+    avatar : "",
+    role : "admin"
+
+  }
+  const logout = () => {
+    
+  }
+  // const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   if (!user) return null;

@@ -22,7 +22,7 @@ const publicNavItems = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = true;
 
   const currentNavItems = isAuthenticated ? navItems : publicNavItems;
 

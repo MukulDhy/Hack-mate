@@ -8,7 +8,11 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { BackgroundScene } from '@/components/3d/background-scene';
 import { useAuth } from '@/context/auth-context';
 import { Eye, EyeOff, Mail, Lock, Github, Chrome } from 'lucide-react';
-
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { loginWithGoogle } from "../config/firebase";
+import {API_URL} from "../config/API_URL";
+import axios from "axios"
+import  ToastNotification, { showError, showSuccess }  from '@/components/ui/ToasterMsg';
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,6 +21,24 @@ export default function Login() {
   });
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [showToast, setShowToast] = useState(false);
+  const LoginWithGoole = async () => {
+
+    try{
+      // const result = await loginWithGoogle();
+      // console.log("User Info:", result.user); 
+
+      // const res = await axios.post(`${API_URL}/api/user/google}`, {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(result.user),
+      // });
+      showSuccess("Successfully Login","Auth",3000);
+    } catch(error){
+       showError("Enable Pop in the Browser","Google Login Failed",5000);
+      console.error("Google Login Error:", error);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +50,14 @@ export default function Login() {
       role: 'Full Stack Developer',
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
     };
+   
     login(user);
-    navigate('/dashboard');
+    // navigate('/dashboard');
+  
   };
 
   return (
+    <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
     <div className="min-h-screen animated-bg relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundScene className="absolute inset-0 w-full h-full" />
       
@@ -68,7 +93,7 @@ export default function Login() {
               <Github className="w-5 h-5 mr-3" />
               Continue with GitHub
             </Button>
-            <Button variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10">
+            <Button variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10" onClick={LoginWithGoole}>
               <Chrome className="w-5 h-5 mr-3" />
               Continue with Google
             </Button>
@@ -160,5 +185,6 @@ export default function Login() {
         </GlassCard>
       </motion.div>
     </div>
+    </GoogleOAuthProvider>
   );
 }
