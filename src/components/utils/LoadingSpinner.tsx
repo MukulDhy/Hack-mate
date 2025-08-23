@@ -9,7 +9,7 @@ interface LoaderProps {
   className?: string;
 }
 
-export const LoadingSpinner: React.FC<LoaderProps> = ({ size = 'md', color = 'purple-500', className = '' }) => {
+export const LoadingSpinner: React.FC<LoaderProps> = ({ size = 'md', color = 'red-100', className = '' }) => {
   const sizeClasses = {
     sm: 'w-8 h-8',
     md: 'w-12 h-12',

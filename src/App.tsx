@@ -28,7 +28,7 @@ const queryClient = new QueryClient();
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, dispatch } = useAuth();
-
+  
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && !isAuthenticated) {
@@ -36,8 +36,8 @@ const AppContent: React.FC = () => {
     }
   }, [dispatch, isAuthenticated]);
 
-  if (isLoading) {
-    return <LoadingSpinner />;
+  if (true) {
+    return <LoadingSpinner  size = 'md' className="flex justify-center align-middle " />;
   }
   return  <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="hackmate-ui-theme">
