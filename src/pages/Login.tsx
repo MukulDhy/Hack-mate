@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BackgroundScene } from '@/components/3d/background-scene';
-import { useAuth } from '@/context/auth-context';
 import { Eye, EyeOff, Mail, Lock, Github, Chrome } from 'lucide-react';
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { loginWithGoogle } from "../config/firebase";
@@ -19,7 +18,7 @@ export default function Login() {
     email: '',
     password: ''
   });
-  const { login } = useAuth();
+
   const navigate = useNavigate();
   const [showToast, setShowToast] = useState(false);
   const LoginWithGoole = async () => {
@@ -51,7 +50,7 @@ export default function Login() {
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
     };
    
-    login(user);
+    // login(user);
     // navigate('/dashboard');
   
   };

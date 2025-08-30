@@ -10,25 +10,17 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
-import { useAuth } from '@/context/auth-context';
+import { useUser } from '@/store/hooks';
+
 
 export function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-
-
-  const user = {
-    name : 'mukul',
-
-    id : 566,
-    email:'dawdaw@gmail.com',
-    avatar : "",
-    role : "admin"
-
-  }
+  
+  const {user} = useUser();
+  
   const logout = () => {
-    
+    console.log("Mukul");
   }
-  // const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   if (!user) return null;

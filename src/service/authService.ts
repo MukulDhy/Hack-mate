@@ -33,6 +33,7 @@ export const authService = {
   },
 
   async verifyToken(token: string): Promise<AuthResponse> {
+    
     const response = await api.get('/auth/verify', {
       headers: { Authorization: `Bearer ${token}` },
     });

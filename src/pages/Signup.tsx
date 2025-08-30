@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BackgroundScene } from '@/components/3d/background-scene';
-import { useAuth } from '@/context/auth-context';
+
 import { Eye, EyeOff, Mail, Lock, User, Github, Chrome } from 'lucide-react';
 import { showWarning } from '@/components/ui/ToasterMsg';
 
@@ -19,7 +19,7 @@ export default function Signup() {
     password: '',
     confirmPassword: ''
   });
-  const { login } = useAuth();
+
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {

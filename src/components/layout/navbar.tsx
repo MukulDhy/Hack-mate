@@ -6,7 +6,7 @@ import { HackMateLogoProfessional } from '@/components/ui/hackmate-logo-professi
 import { Menu, X, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/auth-context';
+import { useUser } from '@/store/hooks';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard' },
@@ -22,7 +22,8 @@ const publicNavItems = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const isAuthenticated = true;
+  const {isAuthenticated}  = useUser();
+  //const isAuthenticated = true;
 
   const currentNavItems = isAuthenticated ? navItems : publicNavItems;
 
