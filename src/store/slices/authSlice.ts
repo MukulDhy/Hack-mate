@@ -1,6 +1,7 @@
 // src/store/slices/authSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authService } from "../../service/authService";
+import { showWarning } from '@/components/ui/ToasterMsg';
 
 export interface User {
   email: string;
@@ -19,6 +20,7 @@ interface AuthState {
   error: ErrorValidate[] | null;
   message: string | null;
   isAuthenticated: boolean;
+  success : number;
   isTokenVerified: boolean; // Add this flag to track token verification status
 }
 
@@ -27,6 +29,7 @@ const initialState: AuthState = {
   token: localStorage.getItem('token'),
   isLoading: false,
   error: null,
+  success:-1,
   message: null,
   isAuthenticated: false,
   isTokenVerified: false, // Initialize as false
@@ -83,18 +86,21 @@ export const verifyToken = createAsyncThunk(
   'auth/verifyToken',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
+      const token = localStorage.getItem("token");
+      if (!token){
+       // showWarning("No Token Found","Please Login/Sign Up",4000);
+        throw new Error('No token found');
+      } 
       const response = await authService.verifyToken(token);
       return response;
     } catch (error: any) {
-      localStorage.removeItem('token');
+      //localStorage.removeItem('token');
       return rejectWithValue(error.message || 'Token verification failed');
     }
   }
 );
-
-const authSlice = createSlice({
+ 
+  const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
@@ -146,12 +152,13 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
+        state.user = action.payload.user || null;
+        state.token = action.payload.token || null;
         state.isAuthenticated = true;
         state.isTokenVerified = true; // Mark as verified
         state.error = null;
         state.message = null;
+        state.success = action.payload.success || -1;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -161,6 +168,7 @@ const authSlice = createSlice({
         ];
         state.isAuthenticated = false;
         state.isTokenVerified = true;
+        state.success = 0;
       });
 
     // Logout
@@ -181,11 +189,12 @@ const authSlice = createSlice({
       })
       .addCase(verifyToken.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        state.user = action.payload.data.user || null;
         state.isAuthenticated = true;
         state.isTokenVerified = true; // Mark as verified
         state.error = null;
-        state.message = null;
+        state.message = action.payload.message || "";
+        state.success =action.payload?.success ? 1 : -1;
       })
       .addCase(verifyToken.rejected, (state) => {
         state.isLoading = false;
@@ -194,6 +203,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.isTokenVerified = true; // Mark as verified
         state.error = null;
+        state.success = action.payload.success ? 0 : -1;
         state.message = null;
       });
   },

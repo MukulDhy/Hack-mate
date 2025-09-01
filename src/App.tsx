@@ -74,7 +74,7 @@ const WebSocketManager = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading, dispatch } = useAuth();
+  const { isAuthenticated, isLoading, dispatch,message } = useAuth();
   
   useEffect(() => {
     const token = localStorage.getItem('token');

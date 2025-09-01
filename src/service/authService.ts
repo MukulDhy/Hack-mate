@@ -47,12 +47,27 @@ export const authService = {
   },
 
   async verifyToken(token: string): Promise<AuthResponse> {
-    const response = await api.get('/auth/me', {
+     try {
+    const response = await api.get('/api/user/verify', {
       headers: {
         Authorization: `Bearer ${token}`
       },
     });
     return response.data;
+     } catch (error: any) {
+      // Extract meaningful error information
+      if (error.response?.data) {
+        throw {
+          message: error.response.data.message,
+          errors: error.response.data.errors || null,
+          errorCode: error.response.data.errorCode
+        };
+      } else if (error.request) {
+        throw { message: 'Network error: Could not connect to server' };
+      } else {
+        throw { message: error.message || 'Verification Token failed' };
+      }
+    }
   },
 
   async refreshToken(): Promise<{ token: string }> {
