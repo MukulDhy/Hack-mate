@@ -1,4 +1,3 @@
-
 // src/services/authService.ts
 import { api } from './api';
 import { User } from '../store/slices/authSlice';
@@ -23,9 +22,24 @@ export const authService = {
     return response.data;
   },
 
-  async register(userData: RegisterData): Promise<AuthResponse> {
-    const response = await api.post('/auth/register', userData);
-    return response.data;
+  async register(userData: { name: string; email: string; password: string }) {
+    try {
+      const response = await api.post('/api/user/register', userData);
+      return response.data;
+    } catch (error: any) {
+      // Extract meaningful error information
+      if (error.response?.data) {
+        throw {
+          message: error.response.data.message,
+          errors: error.response.data.errors || null,
+          errorCode: error.response.data.errorCode
+        };
+      } else if (error.request) {
+        throw { message: 'Network error: Could not connect to server' };
+      } else {
+        throw { message: error.message || 'Registration failed' };
+      }
+    }
   },
 
   async logout(): Promise<void> {
@@ -33,9 +47,10 @@ export const authService = {
   },
 
   async verifyToken(token: string): Promise<AuthResponse> {
-    
-    const response = await api.get('/auth/verify', {
-      headers: { Authorization: `Bearer ${token}` },
+    const response = await api.get('/auth/me', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
     });
     return response.data;
   },

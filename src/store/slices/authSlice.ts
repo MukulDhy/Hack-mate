@@ -1,21 +1,25 @@
 // src/store/slices/authSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { authService } from '../../service/authService';
+import { authService } from "../../service/authService";
 
 export interface User {
-  id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'employee';
-  department: string;
+}
+
+export interface ErrorValidate {
+  field?: string;
+  message: string;
 }
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  error: string | null;
+  error: ErrorValidate[] | null;
+  message: string | null;
   isAuthenticated: boolean;
+  isTokenVerified: boolean; // Add this flag to track token verification status
 }
 
 const initialState: AuthState = {
@@ -23,7 +27,9 @@ const initialState: AuthState = {
   token: localStorage.getItem('token'),
   isLoading: false,
   error: null,
+  message: null,
   isAuthenticated: false,
+  isTokenVerified: false, // Initialize as false
 };
 
 // Async thunks
@@ -35,20 +41,27 @@ export const loginUser = createAsyncThunk(
       localStorage.setItem('token', response.token);
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Login failed');
+      return rejectWithValue(error.response?.data || error.message || 'Login failed');
     }
   }
 );
 
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async (userData: Omit<User, 'id'> & { password: string }, { rejectWithValue }) => {
+  async (userData: { name: string; email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await authService.register(userData);
-      localStorage.setItem('token', response.token);
-      return response;
+      
+      localStorage.setItem('token', response.data.token);
+      return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Registration failed');
+      console.log("Registration error:", error);
+      // Return structured error information
+      return rejectWithValue({
+        message: error.message || 'Registration failed',
+        errors: error.errors || null,
+        errorCode: error.errorCode
+      });
     }
   }
 );
@@ -72,7 +85,6 @@ export const verifyToken = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No token found');
-      
       const response = await authService.verifyToken(token);
       return response;
     } catch (error: any) {
@@ -88,11 +100,16 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+      state.message = null;
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }
+    },
+    // Add a reducer to mark token as verified
+    setTokenVerified: (state) => {
+      state.isTokenVerified = true;
     },
   },
   extraReducers: (builder) => {
@@ -101,18 +118,23 @@ const authSlice = createSlice({
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
         state.error = null;
+        state.message = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isAuthenticated = true;
+        state.isTokenVerified = true; // Mark as verified
         state.error = null;
+        state.message = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload as string;
+        state.message = action.payload?.message || null;
+        state.error = action.payload?.errors || null;
         state.isAuthenticated = false;
+        state.isTokenVerified = true; // Mark as verified even on failure
       });
 
     // Register
@@ -120,18 +142,25 @@ const authSlice = createSlice({
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true;
         state.error = null;
+        state.message = null;
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isAuthenticated = true;
+        state.isTokenVerified = true; // Mark as verified
         state.error = null;
+        state.message = null;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload as string;
+        state.message = action.payload?.message || null;
+        state.error = action.payload?.errors || [
+          { message: action.payload?.message || 'Registration failed' }
+        ];
         state.isAuthenticated = false;
+        state.isTokenVerified = true;
       });
 
     // Logout
@@ -140,7 +169,9 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
+        state.isTokenVerified = true; // Mark as verified
         state.error = null;
+        state.message = null;
       });
 
     // Token verification
@@ -152,16 +183,21 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.isTokenVerified = true; // Mark as verified
         state.error = null;
+        state.message = null;
       })
       .addCase(verifyToken.rejected, (state) => {
         state.isLoading = false;
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
+        state.isTokenVerified = true; // Mark as verified
+        state.error = null;
+        state.message = null;
       });
   },
 });
 
-export const { clearError, updateUser } = authSlice.actions;
+export const { clearError, updateUser, setTokenVerified } = authSlice.actions;
 export default authSlice.reducer;

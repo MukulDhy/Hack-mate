@@ -6,67 +6,83 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BackgroundScene } from '@/components/3d/background-scene';
-
 import { Eye, EyeOff, Mail, Lock, User, Github, Chrome } from 'lucide-react';
-import { showWarning } from '@/components/ui/ToasterMsg';
+import { showSuccess, showWarning } from '@/components/ui/ToasterMsg';
+import { registerUser } from '@/store/slices/authSlice';
+import { useAppDispatch } from '@/store/hooks';
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    name: 'mukul dahiya',
+    email: '1029mukul38@gmail.com',
+    password: 'Mukul@jaat1',
+    confirmPassword: 'Mukul@jaat1'
   });
 
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Simulate signup - in real app, you'd create account and validate
-    // const user = {
-    //   id: '1',
-    //   name: formData.name,
-    //   email: formData.email,
-    //   role: 'Developer',
-    //   avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face'
-    // };
-    // login(user);
-    // navigate('/dashboard');
+// In your Signup component
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-    if(formData.name.trim() === ""){
-      showWarning("Name Can't Be Blank","Validation",3000);
-      return;
-    }
-   if (formData.email.trim() !== "") {
-    const emailRegex = /^[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  // Validation
+  if (formData.name.trim() === "") {
+    showWarning("Name Can't Be Blank", "Validation", 3000);
+    return;
+  }
 
-    if (!emailRegex.test(formData.email)) {
-      showWarning("Please enter a valid email address", "Validation", 3000);
-      return;
+  if (formData.email.trim() === "") {
+    showWarning("Email Can't Be Blank", "Validation", 3000);
+    return;
+  }
+
+  if (formData.password !== formData.confirmPassword) {
+    showWarning("Passwords must match", "Validation", 3000);
+    setShowPassword(true);
+    setShowConfirmPassword(true);
+    return;
+  }
+
+  const { confirmPassword, ...data } = formData;
+
+  try {
+    const result = await dispatch(registerUser(data));
+    
+    if (registerUser.fulfilled.match(result)) {
+      // Registration successful
+      showSuccess("Registration successful!", "Success", 3000);
+      navigate("/dashboard");
+      // Redirect or do something else
+    } else if (registerUser.rejected.match(result)) {
+      // Handle specific error codes from backend
+      const errorPayload = result.payload;
+      
+      if (errorPayload?.errorCode === 1) { // Validation error
+           const errors = errorPayload?.errors || [];
+        if (errors.length > 0) {
+          errors.forEach((error: any) => {
+            showWarning(error.message || 'Registration failed', 'Error', 5000);
+          });
+        } else {
+          showWarning(result.payload?.message || 'Registration failed', 'Error', 5000);
+        }
       }
-    }else{
-      showWarning("Email Can't Be Blank","Validation",3000);
-      return;
+    else {
+        showWarning(errorPayload?.message || "Registration failed", "Error", 6000);
+      }
     }
-
-    if(formData.password !== formData.confirmPassword){
-      showWarning("Password must be Same","Validation",3000);
-      setShowPassword(true);
-      setShowConfirmPassword(true);
-      return;
-    }
-
-
-  };
+  } catch (error) {
+    showWarning("An unexpected error occurred", "Error", 6000);
+  }
+};
 
   return (
     <div className="min-h-screen animated-bg relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundScene className="absolute inset-0 w-full h-full" />
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -95,11 +111,11 @@ export default function Signup() {
 
           {/* Social Signup */}
           <div className="space-y-3 mb-6">
-            <Button variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10">
+            <Button type="button" variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10">
               <Github className="w-5 h-5 mr-3" />
               Continue with GitHub
             </Button>
-            <Button variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10">
+            <Button type="button" variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10">
               <Chrome className="w-5 h-5 mr-3" />
               Continue with Google
             </Button>
@@ -113,12 +129,10 @@ export default function Signup() {
           </div>
 
           {/* Signup Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Name Field */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-foreground font-medium">
-                Full Name
-              </Label>
+              <Label htmlFor="name" className="text-foreground font-medium">Full Name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -128,16 +142,13 @@ export default function Signup() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="pl-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Enter your full name"
-                  required
                 />
               </div>
             </div>
 
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground font-medium">
-                Email Address
-              </Label>
+              <Label htmlFor="email" className="text-foreground font-medium">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -147,16 +158,13 @@ export default function Signup() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="pl-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Enter your email"
-                  required
                 />
               </div>
             </div>
 
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground font-medium">
-                Password
-              </Label>
+              <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -166,7 +174,6 @@ export default function Signup() {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="pl-10 pr-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Create a password"
-                  required
                 />
                 <Button
                   type="button"
@@ -182,9 +189,7 @@ export default function Signup() {
 
             {/* Confirm Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-foreground font-medium">
-                Confirm Password
-              </Label>
+              <Label htmlFor="confirmPassword" className="text-foreground font-medium">Confirm Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -194,7 +199,6 @@ export default function Signup() {
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   className="pl-10 pr-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Confirm your password"
-                  required
                 />
                 <Button
                   type="button"
@@ -210,27 +214,18 @@ export default function Signup() {
 
             {/* Terms & Conditions */}
             <div className="flex items-start gap-3">
-              <input 
-                type="checkbox" 
-                id="terms"
-                className="mt-1 rounded border-glass-border" 
-                required
-              />
+              <input type="checkbox" id="terms" className="mt-1 rounded border-glass-border" />
               <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
                 I agree to the{' '}
-                <Link to="/terms" className="text-primary hover:text-primary/80">
-                  Terms of Service
-                </Link>
+                <Link to="/terms" className="text-primary hover:text-primary/80">Terms of Service</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-primary hover:text-primary/80">
-                  Privacy Policy
-                </Link>
+                <Link to="/privacy" className="text-primary hover:text-primary/80">Privacy Policy</Link>
               </label>
             </div>
 
             {/* Submit Button */}
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 bg-gradient-primary hover:shadow-glow transition-all duration-300"
             >
               Create Account

@@ -1,8 +1,8 @@
 // src/services/api.ts
 import axios from 'axios';
-
+import { API_URL } from '@/config/API_URL';
 // const BASE_URL = process.env.REACT_APP_API_URL || 'https://api.yourcompany.com';
-const BASE_URL = 'https://api.yourcompany.com';
+const BASE_URL = API_URL;
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -12,7 +12,8 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+
+// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -26,13 +27,15 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle common errors
+// Add response interceptor to handle common errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout');
+    }
+    if (!error.response) {
+      throw new Error('Network error: Could not connect to server');
     }
     return Promise.reject(error);
   }

@@ -1,4 +1,4 @@
-// src/services/websocketService.js
+import {API_URL, WS_API_URL} from "../config/API_URL"
 class WebSocketService {
   constructor(store) {
     this.store = store;
@@ -18,9 +18,9 @@ class WebSocketService {
 
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
-
+      const wsUrl = `${protocol}//${WS_API_URL}?token=${token}`;
       this.socket = new WebSocket(wsUrl);
+
       this.setupEventHandlers();
     } catch (error) {
       console.error("WebSocket connection failed:", error);
