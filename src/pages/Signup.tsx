@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BackgroundScene } from '@/components/3d/background-scene';
-import { Eye, EyeOff, Mail, Lock, User, Github, Chrome } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Github, Chrome, Loader2 } from 'lucide-react';
 import { showSuccess, showWarning } from '@/components/ui/ToasterMsg';
 import { registerUser } from '@/store/slices/authSlice';
 import { useAppDispatch } from '@/store/hooks';
@@ -14,70 +14,95 @@ import { useAppDispatch } from '@/store/hooks';
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: 'mukul dahiya',
-    email: '1029mukul38@gmail.com',
-    password: 'Mukul@jaat1',
-    confirmPassword: 'Mukul@jaat1'
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    agreedToTerms: false
   });
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-// In your Signup component
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleInputChange = useCallback((field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
-  // Validation
-  if (formData.name.trim() === "") {
-    showWarning("Name Can't Be Blank", "Validation", 3000);
-    return;
-  }
+  const validateForm = () => {
+    if (formData.name.trim() === "") {
+      showWarning("Name Can't Be Blank", "Validation", 3000);
+      return false;
+    }
 
-  if (formData.email.trim() === "") {
-    showWarning("Email Can't Be Blank", "Validation", 3000);
-    return;
-  }
+    if (formData.email.trim() === "") {
+      showWarning("Email Can't Be Blank", "Validation", 3000);
+      return false;
+    }
 
-  if (formData.password !== formData.confirmPassword) {
-    showWarning("Passwords must match", "Validation", 3000);
-    setShowPassword(true);
-    setShowConfirmPassword(true);
-    return;
-  }
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      showWarning("Please enter a valid email address", "Validation", 3000);
+      return false;
+    }
 
-  const { confirmPassword, ...data } = formData;
+    if (formData.password.length < 6) {
+      showWarning("Password must be at least 6 characters", "Validation", 3000);
+      return false;
+    }
 
-  try {
-    const result = await dispatch(registerUser(data));
+    if (formData.password !== formData.confirmPassword) {
+      showWarning("Passwords must match", "Validation", 3000);
+      setShowPassword(true);
+      setShowConfirmPassword(true);
+      return false;
+    }
+
+    if (!formData.agreedToTerms) {
+      showWarning("You must agree to the terms and conditions", "Validation", 3000);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (registerUser.fulfilled.match(result)) {
-      // Registration successful
-      showSuccess("Registration successful!", "Success", 3000);
-      navigate("/dashboard");
-      // Redirect or do something else
-    } else if (registerUser.rejected.match(result)) {
-      // Handle specific error codes from backend
-      const errorPayload = result.payload;
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    
+    const { confirmPassword, agreedToTerms, ...data } = formData;
+
+    try {
+      const result = await dispatch(registerUser(data));
       
-      if (errorPayload?.errorCode === 1) { // Validation error
-           const errors = errorPayload?.errors || [];
-        if (errors.length > 0) {
-          errors.forEach((error: any) => {
-            showWarning(error.message || 'Registration failed', 'Error', 5000);
-          });
+      if (registerUser.fulfilled.match(result)) {
+        showSuccess("Registration successful!", "Success", 3000);
+        navigate("/dashboard");
+      } else if (registerUser.rejected.match(result)) {
+        const errorPayload = result.payload;
+        
+        if (errorPayload?.errorCode === 1) {
+          const errors = errorPayload?.errors || [];
+          if (errors.length > 0) {
+            errors.forEach((error: any) => {
+              showWarning(error.message || 'Registration failed', 'Error', 5000);
+            });
+          } else {
+            showWarning(result.payload?.message || 'Registration failed', 'Error', 5000);
+          }
         } else {
-          showWarning(result.payload?.message || 'Registration failed', 'Error', 5000);
+          showWarning(errorPayload?.message || "Registration failed", "Error", 6000);
         }
       }
-    else {
-        showWarning(errorPayload?.message || "Registration failed", "Error", 6000);
-      }
+    } catch (error) {
+      showWarning("An unexpected error occurred", "Error", 6000);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    showWarning("An unexpected error occurred", "Error", 6000);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen animated-bg relative overflow-hidden flex items-center justify-center p-4">
@@ -111,11 +136,21 @@ const handleSubmit = async (e) => {
 
           {/* Social Signup */}
           <div className="space-y-3 mb-6">
-            <Button type="button" variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              className="w-full h-12 border border-glass-border hover:bg-primary/10"
+              disabled={isLoading}
+            >
               <Github className="w-5 h-5 mr-3" />
               Continue with GitHub
             </Button>
-            <Button type="button" variant="ghost" className="w-full h-12 border border-glass-border hover:bg-primary/10">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              className="w-full h-12 border border-glass-border hover:bg-primary/10"
+              disabled={isLoading}
+            >
               <Chrome className="w-5 h-5 mr-3" />
               Continue with Google
             </Button>
@@ -139,9 +174,10 @@ const handleSubmit = async (e) => {
                   id="name"
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
                   className="pl-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Enter your full name"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -155,9 +191,10 @@ const handleSubmit = async (e) => {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Enter your email"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -171,9 +208,10 @@ const handleSubmit = async (e) => {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
                   className="pl-10 pr-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Create a password"
+                  disabled={isLoading}
                 />
                 <Button
                   type="button"
@@ -181,6 +219,7 @@ const handleSubmit = async (e) => {
                   size="icon"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
@@ -196,9 +235,10 @@ const handleSubmit = async (e) => {
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   className="pl-10 pr-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
                   placeholder="Confirm your password"
+                  disabled={isLoading}
                 />
                 <Button
                   type="button"
@@ -206,6 +246,7 @@ const handleSubmit = async (e) => {
                   size="icon"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                  disabled={isLoading}
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
@@ -214,7 +255,14 @@ const handleSubmit = async (e) => {
 
             {/* Terms & Conditions */}
             <div className="flex items-start gap-3">
-              <input type="checkbox" id="terms" className="mt-1 rounded border-glass-border" />
+              <input 
+                type="checkbox" 
+                id="terms" 
+                className="mt-1 rounded border-glass-border" 
+                checked={formData.agreedToTerms}
+                onChange={(e) => handleInputChange('agreedToTerms', e.target.checked)}
+                disabled={isLoading}
+              />
               <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
                 I agree to the{' '}
                 <Link to="/terms" className="text-primary hover:text-primary/80">Terms of Service</Link>
@@ -227,8 +275,16 @@ const handleSubmit = async (e) => {
             <Button
               type="submit"
               className="w-full h-12 bg-gradient-primary hover:shadow-glow transition-all duration-300"
+              disabled={isLoading}
             >
-              Create Account
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
+              )}
             </Button>
           </form>
 

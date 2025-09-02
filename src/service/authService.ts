@@ -18,10 +18,24 @@ interface AuthResponse {
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post('/auth/login', credentials);
+     try {
+    const response = await api.post('/api/user/login', credentials);
     return response.data;
+  }  catch (error: any) {
+      // Extract meaningful error information
+      if (error.response?.data) {
+        throw {
+          message: error.response.data.message,
+          errors: error.response.data.errors || null,
+          errorCode: error.response.data.errorCode
+        };
+      } else if (error.request) {
+        throw { message: 'Network error: Could not connect to server' };
+      } else {
+        throw { message: error.message || 'Login failed' };
+      }
+    }
   },
-
   async register(userData: { name: string; email: string; password: string }) {
     try {
       const response = await api.post('/api/user/register', userData);
@@ -38,6 +52,25 @@ export const authService = {
         throw { message: 'Network error: Could not connect to server' };
       } else {
         throw { message: error.message || 'Registration failed' };
+      }
+    }
+  },
+    async googleLogin(userData: { name: string; email: string }) {
+    try {
+      const response = await api.post('/api/user/google', userData);
+      return response.data;
+    } catch (error: any) {
+      // Extract meaningful error information
+      if (error.response?.data) {
+        throw {
+          message: error.response.data.message,
+          errors: error.response.data.errors || null,
+          errorCode: error.response.data.errorCode
+        };
+      } else if (error.request) {
+        throw { message: 'Network error: Could not connect to server' };
+      } else {
+        throw { message: error.message || 'Google failed | Please Login after sometimes' };
       }
     }
   },

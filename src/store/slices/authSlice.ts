@@ -41,13 +41,13 @@ export const loginUser = createAsyncThunk(
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials);
-      localStorage.setItem('token', response.token);
-      return response;
+      localStorage.setItem('token', response.data.token);
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data || error.message || 'Login failed');
     }
   }
-);
+); 
 
 export const registerUser = createAsyncThunk(
   'auth/register',
@@ -55,6 +55,24 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await authService.register(userData);
       
+      localStorage.setItem('token', response.data.token);
+      return response.data;
+    } catch (error: any) {
+      console.log("Registration error:", error);
+      // Return structured error information
+      return rejectWithValue({
+        message: error.message || 'Registration failed',
+        errors: error.errors || null,
+        errorCode: error.errorCode
+      });
+    }
+  }
+);
+export const googleLogin = createAsyncThunk(
+  'auth/register',
+  async (userData: { name: string; email: string; password: string }, { rejectWithValue }) => {
+    try {
+      const response = await authService.googleLogin(userData);
       localStorage.setItem('token', response.data.token);
       return response.data;
     } catch (error: any) {
@@ -137,10 +155,13 @@ export const verifyToken = createAsyncThunk(
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.message = action.payload?.message || null;
-        state.error = action.payload?.errors || null;
+        state.message = action.payload?.message || action.payload || null;
+        state.error = action.payload?.errors || [
+          { message: action.payload?.message || 'Registration failed' }
+        ];
         state.isAuthenticated = false;
-        state.isTokenVerified = true; // Mark as verified even on failure
+        state.isTokenVerified = true;
+        state.success = 0;
       });
 
     // Register
