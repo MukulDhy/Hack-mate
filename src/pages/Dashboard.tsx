@@ -16,73 +16,148 @@ import {
   Award,
   Plus
 } from 'lucide-react';
+import { useUser } from '@/store/hooks';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const userStats = {
-  name: 'Alex Rodriguez',
-  avatar: '/placeholder-avatar.jpg',
-  level: 42,
-  xp: 12450,
-  nextLevelXp: 15000,
-  hackathonsJoined: 28,
-  teamsFormed: 15,
-  projectsCompleted: 23,
-  rank: 'Elite Hacker'
+// Default user data structure
+const defaultUser = {
+  name: 'User',
+  profilePicture: '',
+  currentHackathonId: null,
+  profileCompletion: 0,
+  skills: []
 };
 
-const skills = [
-  { name: 'React', level: 95, color: 'neon-cyan' },
-  { name: 'Node.js', level: 88, color: 'neon-lime' },
-  { name: 'Python', level: 92, color: 'neon-purple' },
-  { name: 'TypeScript', level: 85, color: 'neon-magenta' },
-  { name: 'AWS', level: 78, color: 'neon-cyan' },
-];
+// Default hackathon data structure
+const defaultHackathon = {
+  title: 'No Active Hackathon',
+  description: 'Join a hackathon to showcase your skills!',
+  startDate: null,
+  endDate: null,
+  status: 'upcoming',
+  totalMembersJoined: 0,
+  maxTeamSize: 0,
+  prizes: []
+};
 
-const activeLobbies = [
-  {
-    id: 1,
-    title: 'AI Innovation Challenge',
-    participants: 47,
-    maxParticipants: 60,
-    timeLeft: '2h 30m',
-    difficulty: 'Advanced',
-    prize: '$50,000',
-    tags: ['AI', 'Machine Learning', 'Python']
-  },
-  {
-    id: 2,
-    title: 'Web3 DeFi Builder',
-    participants: 32,
-    maxParticipants: 40,
-    timeLeft: '5h 15m',
-    difficulty: 'Expert',
-    prize: '$25,000',
-    tags: ['Blockchain', 'Solidity', 'React']
-  },
-  {
-    id: 3,
-    title: 'Mobile Game Jam',
-    participants: 28,
-    maxParticipants: 50,
-    timeLeft: '1d 3h',
-    difficulty: 'Intermediate',
-    prize: '$15,000',
-    tags: ['Unity', 'C#', 'Game Design']
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user: userData } = useUser();
+  
+  // Use user data from backend or default values
+  const user = userData || defaultUser;
+  
+  // Generate logo from name
+  let logoName = "U";
+  if (user.name && user.name !== "User") {
+    const letters: string[] = user.name.split(" ");
+    if (letters.length >= 2) {
+      logoName = (letters[0][0] + letters[1][0]).toUpperCase();
+    } else if (letters[0].length > 0) {
+      logoName = letters[0][0].toUpperCase();
+    }
   }
-];
 
-const recentAchievements = [
-  { title: 'Team Player', description: 'Formed 10 successful teams', icon: Users },
-  { title: 'Speed Demon', description: 'Completed challenge in under 2 hours', icon: Zap },
-  { title: 'Innovation Master', description: 'Won 3 hackathons this month', icon: Trophy },
-];
+  // Mock hackathon data - in real app this would come from backend
+  const hackathonData = user.currentHackathonId ? {
+    _id: user.currentHackathonId,
+    title: 'AI Innovation Challenge 2024',
+    description: 'Build the next generation of AI applications',
+    startDate: '2024-03-15',
+    endDate: '2024-03-17',
+    status: 'registration_open',
+    totalMembersJoined: 247,
+    maxTeamSize: 4,
+    prizes: [
+      { position: '1st', amount: 10000 },
+      { position: '2nd', amount: 5000 },
+      { position: '3rd', amount: 2500 }
+    ],
+    registrationDeadline: '2024-03-10',
+    venue: 'Virtual',
+    mode: 'online'
+  } : null;
 
-const upcomingEvents = [
-  { title: 'Global AI Summit Hackathon', date: '2024-02-15', participants: 500 },
-  { title: 'Crypto & Blockchain Challenge', date: '2024-02-22', participants: 300 },
-  { title: 'Green Tech Innovation', date: '2024-03-01', participants: 200 },
-];
+  const currentHackathon = hackathonData || defaultHackathon;
 
-export default function Dashboard() {
+  // User stats with fallback values
+  const userStats = {
+    name: user.name || 'User',
+    avatar: user.profilePicture || '/placeholder-avatar.jpg',
+    level: Math.floor((user.profileCompletion || 0) / 10) + 1 || 1,
+    xp: (user.profileCompletion || 0) * 100 || 0,
+    nextLevelXp: 1000,
+    hackathonsJoined: 12,
+    teamsFormed: 8,
+    projectsCompleted: 10,
+    rank: user.profileCompletion > 50 ? 'Skilled Hacker' : 'Rookie Hacker'
+  };
+
+  // Use actual user skills or default ones
+  const skills = user.skills && user.skills.length > 0 
+    ? user.skills.map(skill => ({ 
+        name: skill, 
+        level: Math.floor(Math.random() * 30) + 70, 
+        color: 'neon-cyan' 
+      }))
+    : [
+        { name: 'JavaScript', level: 85, color: 'neon-cyan' },
+        { name: 'HTML/CSS', level: 90, color: 'neon-lime' },
+        { name: 'React', level: 78, color: 'neon-purple' },
+      ];
+
+  const activeLobbies = [
+    {
+      id: 1,
+      title: 'AI Innovation Challenge',
+      participants: 47,
+      maxParticipants: 60,
+      timeLeft: '2h 30m',
+      difficulty: 'Advanced',
+      prize: '$50,000',
+      tags: ['AI', 'Machine Learning', 'Python']
+    },
+    {
+      id: 2,
+      title: 'Web3 DeFi Builder',
+      participants: 32,
+      maxParticipants: 40,
+      timeLeft: '5h 15m',
+      difficulty: 'Expert',
+      prize: '$25,000',
+      tags: ['Blockchain', 'Solidity', 'React']
+    }
+  ];
+
+  const recentAchievements = [
+    { title: 'Team Player', description: 'Formed 10 successful teams', icon: Users },
+    { title: 'Speed Demon', description: 'Completed challenge in under 2 hours', icon: Zap },
+    { title: 'Innovation Master', description: 'Won 3 hackathons this month', icon: Trophy },
+  ];
+
+  const upcomingEvents = [
+    { title: 'Global AI Summit Hackathon', date: '2024-02-15', participants: 500 },
+    { title: 'Crypto & Blockchain Challenge', date: '2024-02-22', participants: 300 },
+    { title: 'Green Tech Innovation', date: '2024-03-01', participants: 200 },
+  ];
+
+  useEffect(() => {
+    if (!userData) {
+      navigate("/login");
+    }
+  }, [userData, navigate]);
+
+  // Format date for display
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'TBA';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   return (
     <div className="min-h-screen animated-bg relative overflow-hidden pt-24">
       <BackgroundScene className="absolute inset-0 w-full h-full" />
@@ -99,7 +174,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-6">
                 <div className="relative">
                   <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center text-2xl font-orbitron font-bold">
-                    AR
+                    {logoName}
                   </div>
                   <div className="absolute -top-2 -right-2 w-8 h-8 bg-neon-cyan rounded-full flex items-center justify-center text-xs font-bold text-background">
                     {userStats.level}
@@ -107,7 +182,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h1 className="font-orbitron font-bold text-3xl text-foreground mb-2">
-                    Welcome back, {userStats.name}!
+                    Welcome back, {user.name.toUpperCase()}!
                   </h1>
                   <p className="text-muted-foreground mb-3">
                     {userStats.rank} • Level {userStats.level}
@@ -119,7 +194,7 @@ export default function Dashboard() {
                     </Badge>
                     <Badge variant="outline" className="border-neon-lime/30 text-neon-lime">
                       <Trophy className="w-3 h-3 mr-1" />
-                      Rank #127
+                      {user.profileCompletion || 0}% Profile Complete
                     </Badge>
                   </div>
                 </div>
@@ -131,6 +206,80 @@ export default function Dashboard() {
             </div>
           </GlassCard>
         </motion.div>
+
+        {/* Current Hackathon Section */}
+        {user.currentHackathonId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <GlassCard className="p-6 mb-8 border-neon-cyan/30">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-orbitron font-bold text-2xl text-neon-cyan">Current Hackathon</h2>
+                <Badge variant="outline" className="bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30">
+                  {currentHackathon.status.replace('_', ' ').toUpperCase()}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2">
+                  <h3 className="font-orbitron font-semibold text-xl text-foreground mb-2">
+                    {currentHackathon.title}
+                  </h3>
+                  <p className="text-muted-foreground mb-4 line-clamp-2">
+                    {currentHackathon.description}
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Starts</p>
+                      <p className="font-medium">{formatDate(currentHackathon.startDate)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Ends</p>
+                      <p className="font-medium">{formatDate(currentHackathon.endDate)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Venue</p>
+                      <p className="font-medium">{currentHackathon.venue || 'Virtual'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Mode</p>
+                      <p className="font-medium">{currentHackathon.mode || 'Online'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      {currentHackathon.totalMembersJoined} Participants
+                    </span>
+                    <span>•</span>
+                    <span>Team Size: {currentHackathon.maxTeamSize || 'Solo'}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <h4 className="font-orbitron font-semibold text-foreground">Prizes</h4>
+                  {currentHackathon.prizes && currentHackathon.prizes.length > 0 ? (
+                    currentHackathon.prizes.slice(0, 3).map((prize, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-accent/10 rounded">
+                        <span className="font-medium">{prize.position}</span>
+                        <span className="text-neon-cyan">${prize.amount.toLocaleString()}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground">Prize details coming soon</p>
+                  )}
+                  <Button variant="neon" size="sm" className="w-full mt-2">
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column */}
@@ -307,7 +456,7 @@ export default function Dashboard() {
             </motion.div>
 
             {/* Upcoming Events */}
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
@@ -345,10 +494,12 @@ export default function Dashboard() {
                   View All Events
                 </Button>
               </GlassCard>
-            </motion.div>
+            </motion.div> */}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default Dashboard;
