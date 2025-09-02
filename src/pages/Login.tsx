@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { API_URL } from "../config/API_URL";
 import axios from "axios";
 import { showError, showSuccess } from '@/components/ui/ToasterMsg';
 import { loginUser } from '@/store/slices/authSlice';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useUser } from '@/store/hooks';
 
 function getErrorMessage(errorPayload) {
   if (!errorPayload) {
@@ -78,6 +78,13 @@ export default function Login() {
 
     return true;
   };
+
+const {user} = useUser();
+useEffect(() => {
+  if(user){
+    navigate("/");
+  }
+},[user,navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
