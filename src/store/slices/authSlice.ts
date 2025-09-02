@@ -203,7 +203,7 @@ export const verifyToken = createAsyncThunk(
         state.isAuthenticated = false;
         state.isTokenVerified = true; // Mark as verified
         state.error = null;
-        state.success = action.payload.success ? 0 : -1;
+        state.success =  -1;
         state.message = null;
       });
   },

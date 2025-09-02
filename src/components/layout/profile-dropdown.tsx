@@ -11,15 +11,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useUser } from '@/store/hooks';
+import { logoutUser } from '@/store/slices/authSlice';
+import { showSuccess } from '../ui/ToasterMsg';
 
 
 export function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   
-  const {user} = useUser();
+  const {user,dispatch} = useUser();
   
   const logout = () => {
     console.log("Mukul");
+    dispatch(logoutUser());
+    showSuccess("Logout Successfully","Auth",4000);
   }
   const navigate = useNavigate();
 

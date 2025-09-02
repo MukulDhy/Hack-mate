@@ -43,7 +43,7 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    await api.post('/auth/logout');
+    await api.post('/api/user/logout');
   },
 
   async verifyToken(token: string): Promise<AuthResponse> {
