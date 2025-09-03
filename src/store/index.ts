@@ -4,10 +4,12 @@ import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
 import webSocketReducer from './slices/websocketSlice'
 import { initWebSocketService } from '../service/websocketService';
+import hackathonReducer from './slices/hackathonSlice';
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     websocket: webSocketReducer,
+    hackathons: hackathonReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
