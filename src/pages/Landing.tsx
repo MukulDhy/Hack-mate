@@ -1,5 +1,8 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { ContentSection } from '@/components/layout/content-section';
+import { PageHeader } from '@/components/layout/page-header';
+import { PageLayout } from '@/components/layout/page-layout';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BackgroundScene } from '@/components/3d/background-scene';
 import { HackMateLogo } from '@/components/ui/hackmate-logo';
