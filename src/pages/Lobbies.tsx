@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from '@/store/store';
+import { AppDispatch, RootState } from '@/store/index';
 import { fetchHackathons, setFilters } from '@/store/slices/hackathonSlice';
 import { Hackathon, HackathonStatus } from '@/types/hackathon';
 

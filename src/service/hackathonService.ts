@@ -1,17 +1,9 @@
-import { Hackathon, HackathonFilters } from '@/types/hackathon';
+import { Hackathon, HackathonFilters, HackathonResponse } from '@/types/hackathon';
+import { api } from './api';
 
 // Cache implementation
 const HACKATHON_CACHE_KEY = 'hackathons_cache';
 const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
-
-interface HackathonResponse {
-  success: boolean;
-  count: number;
-  total: number;
-  currentPage: number;
-  totalPages: number;
-  data: Hackathon[];
-}
 
 interface CacheData {
   timestamp: number;
@@ -22,26 +14,35 @@ interface CacheData {
 const getCachedHackathons = (filters: HackathonFilters): HackathonResponse | null => {
   if (typeof window === 'undefined') return null;
   
-  const cached = localStorage.getItem(HACKATHON_CACHE_KEY);
-  if (!cached) return null;
-  
-  const cacheData: CacheData = JSON.parse(cached);
-  const isExpired = Date.now() - cacheData.timestamp > CACHE_DURATION;
-  const isSameFilters = JSON.stringify(cacheData.filters) === JSON.stringify(filters);
-  
-  return !isExpired && isSameFilters ? cacheData.data : null;
+  try {
+    const cached = localStorage.getItem(HACKATHON_CACHE_KEY);
+    if (!cached) return null;
+    
+    const cacheData: CacheData = JSON.parse(cached);
+    const isExpired = Date.now() - cacheData.timestamp > CACHE_DURATION;
+    const isSameFilters = JSON.stringify(cacheData.filters) === JSON.stringify(filters);
+    
+    return !isExpired && isSameFilters ? cacheData.data : null;
+  } catch (error) {
+    console.error('Error reading from cache:', error);
+    return null;
+  }
 };
 
 const setCachedHackathons = (data: HackathonResponse, filters: HackathonFilters) => {
   if (typeof window === 'undefined') return;
   
-  const cacheData: CacheData = {
-    timestamp: Date.now(),
-    data,
-    filters
-  };
-  
-  localStorage.setItem(HACKATHON_CACHE_KEY, JSON.stringify(cacheData));
+  try {
+    const cacheData: CacheData = {
+      timestamp: Date.now(),
+      data,
+      filters
+    };
+    
+    localStorage.setItem(HACKATHON_CACHE_KEY, JSON.stringify(cacheData));
+  } catch (error) {
+    console.error('Error writing to cache:', error);
+  }
 };
 
 export const hackathonService = {
@@ -64,28 +65,58 @@ export const hackathonService = {
     if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
     if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
     
-    const response = await fetch(`/api/hackathons?${queryParams.toString()}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch hackathons');
+    try {
+      const response = await api.get(`/api/hackathons?${queryParams.toString()}`);
+      const data: HackathonResponse = response.data;
+      
+      // Cache the response
+      setCachedHackathons(data, filters);
+      
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch hackathons');
     }
-    
-    const data: HackathonResponse = await response.json();
-    
-    // Cache the response
-    setCachedHackathons(data, filters);
-    
-    return data;
   },
   
   async getHackathonById(id: string): Promise<Hackathon> {
-    const response = await fetch(`/api/hackathons/${id}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch hackathon');
+    try {
+      const response = await api.get(`/hackathons/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch hackathon');
     }
-    
-    const data = await response.json();
-    return data.data;
-  }
+  },
+
+  // ADMIN
+  // Get all hackathons
+  getAll: async (): Promise<Hackathon[]> => {
+    const response = await api.get('/api/hackathons');
+    return response.data.data;
+  },
+
+  // Get single hackathon
+  getById: async (id: string): Promise<Hackathon> => {
+    const response = await api.get(`/hackathons/${id}`);
+    return response.data.data;
+  },
+
+  // Create hackathon
+  create: async (hackathonData: Partial<Hackathon>): Promise<Hackathon> => {
+    const response = await api.post('/api/hackathons/new', hackathonData);
+    return response.data.data;
+  },
+
+  // Update hackathon
+  update: async (id: string, hackathonData: Partial<Hackathon>): Promise<Hackathon> => {
+    const response = await api.put(`/hackathons/${id}`, hackathonData);
+    return response.data.data;
+  },
+
+  // Delete hackathon
+  delete: async (id: string, reason?: string): Promise<void> => {
+    await api.delete(`/hackathons/${id}`, { data: { reason } });
+  },
+
 };

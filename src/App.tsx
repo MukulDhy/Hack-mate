@@ -37,7 +37,7 @@ const AppContent: React.FC = () => {
   return (
 
           
-          <Router>
+          <Router>ScrollToTop
             <div className="min-h-screen bg-background text-foreground">
               <Navbar />
               <main className="pt-20">

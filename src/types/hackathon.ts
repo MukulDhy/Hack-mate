@@ -78,5 +78,22 @@ export interface HackathonFilters {
   tags?: string[];
   search?: string;
   sortBy?: string;
-  sortOrder?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface HackathonResponse {
+  success: boolean;
+  count: number;
+  total: number;
+  currentPage: number;
+  totalPages: number;
+  data: Hackathon[];
+}
+
+export interface HackathonFormData extends Omit<Hackathon, 'registrationDeadline' | 'startDate' | 'endDate' | 'winnerAnnouncementDate' | 'submissionDeadline'> {
+  registrationDeadline: Date | null;
+  startDate: Date | null;
+  endDate: Date | null;
+  winnerAnnouncementDate?: Date | null;
+  submissionDeadline?: Date | null;
 }

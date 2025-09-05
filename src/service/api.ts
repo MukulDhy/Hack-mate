@@ -1,7 +1,6 @@
-// src/services/api.ts
 import axios from 'axios';
 import { API_URL } from '@/config/API_URL';
-// const BASE_URL = process.env.REACT_APP_API_URL || 'https://api.yourcompany.com';
+
 const BASE_URL = API_URL;
 
 export const api = axios.create({
@@ -12,13 +11,14 @@ export const api = axios.create({
   },
 });
 
-
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
