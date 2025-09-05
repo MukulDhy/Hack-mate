@@ -16,6 +16,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 
+
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, dispatch,message } = useAuth();
   
