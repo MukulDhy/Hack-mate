@@ -21,6 +21,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/index';
 import { fetchHackathons, setFilters } from '@/store/slices/hackathonSlice';
 import { Hackathon, HackathonStatus } from '@/types/hackathon';
+import { useNavigate } from 'react-router-dom';
 
 // Categories based on tags
 const lobbyCategories = [
@@ -72,6 +73,11 @@ export default function Lobbies() {
 
     fetchData();
   }, [dispatch, filters, searchTerm, selectedTags, selectedTypes]);
+
+  const navigation = useNavigate();
+  const handleHackathonClick = (id) => {
+    navigation(`/hackathon/${id}`);
+  }
 
   // Debounced search
   useEffect(() => {
@@ -252,6 +258,7 @@ export default function Lobbies() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
+                  onClick={() => handleHackathonClick(hackathon._id)}
                 >
                   <GlassCard 
                     variant="interactive" 

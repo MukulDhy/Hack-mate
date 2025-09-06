@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, MapPin, Users, Trophy, DollarSign, Globe, Linkedin, Twitter, MessageSquare, Github, Mail, Phone, Building, Award, FileText, CheckCircle, AlertCircle, Play, User, ArrowLeft } from 'lucide-react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '@/config/API_URL';
 
 const HackathonDetailsPage = () => {
   const [hackathonData, setHackathonData] = useState(null);
@@ -46,7 +47,7 @@ const HackathonDetailsPage = () => {
         return;
       }
 
-      const response = await axios.get(`/api/hackathons/${id}`);
+      const response = await axios.get(`${API_URL}/api/hackathons/${id}`);
       
       if (response.data.success) {
         setHackathonData(response.data.data);
@@ -77,7 +78,7 @@ const HackathonDetailsPage = () => {
       setJoining(true);
       
       // Add your join hackathon API call here
-      // const response = await axios.post(`/api/hackathons/${id}/join`);
+      // const response = await axios.post(`/api/hackathons/join/${id}`);
       
       // Simulate API call for now
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -191,23 +192,7 @@ const HackathonDetailsPage = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Back Button */}
-      <div className="sticky top-0 z-10 bg-opacity-80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate(-1)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              theme === 'dark' 
-                ? 'hover:bg-gray-800 text-gray-300 hover:text-white' 
-                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Hackathons
-          </button>
-        </div>
-      </div>
-
+ 
       {/* Hero Section */}
       <div className="relative h-96 overflow-hidden">
         <img

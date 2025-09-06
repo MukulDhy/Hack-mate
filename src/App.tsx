@@ -15,6 +15,9 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
+import ScrollToTop from './components/layout/scroll-to-top';
+import HackathonPage from './pages/HackathonPage';
+import HackathonDetailsPage from './pages/Hackathon';
 
 
 const AppContent: React.FC = () => {
@@ -38,7 +41,7 @@ const AppContent: React.FC = () => {
   return (
 
           
-          <Router>ScrollToTop
+          <Router><ScrollToTop />
             <div className="min-h-screen bg-background text-foreground">
               <Navbar />
               <main className="pt-20">
@@ -69,6 +72,10 @@ const AppContent: React.FC = () => {
                   <Route 
                     path="/settings" 
                     element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} 
+                  />
+                  <Route 
+                    path="/hackathon/:id" 
+                    element={isAuthenticated ? <HackathonDetailsPage /> : <Navigate to="/login" />} 
                   />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
