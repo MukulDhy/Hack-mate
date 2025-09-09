@@ -10,7 +10,7 @@ import {
 
 export const useWebSocket = () => {
   const dispatch = useDispatch();
-  const { isConnected, error } = useSelector((state) => state.websocket);
+  const { isConnected, error,connectWs } = useSelector((state) => state.websocket);
   const token = useSelector((state) => state?.auth.token);
 
   // Connect to WebSocket
@@ -57,7 +57,7 @@ export const useWebSocket = () => {
 
   // Auto-connect on mount and when token changes
   useEffect(() => {
-    if (token && !isConnected) {
+    if (token && !isConnected && connectWs) {
       connect();
     }
 

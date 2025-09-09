@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   isConnected: false,
+  connectWs:false,
   error: null,
   notifications: [],
   teamMessages: {},
@@ -147,6 +148,10 @@ const websocketSlice = createSlice({
       state.error = null;
       state.lastActivity = new Date().toISOString();
     },
+    changeConnect : (state,action) => {
+      const {changeStatus} = action.payload;
+      state.connectWs = changeStatus;
+    },
     resetWebSocketState: () => initialState,
   },
 });
@@ -168,6 +173,7 @@ export const {
   teamCreated,
   teamUpdated,
   clearMessages,
+  changeConnect,
   clearError,
   resetWebSocketState,
 } = websocketSlice.actions;

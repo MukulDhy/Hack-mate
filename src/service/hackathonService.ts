@@ -89,11 +89,23 @@ export const hackathonService = {
     }
   },
 
-  // ADMIN
-  // Get all hackathons
-  getAll: async (): Promise<Hackathon[]> => {
-    const response = await api.get('/api/hackathons');
-    return response.data.data;
+  async joinHackathon(id : string) : Promise<Hackathon>{
+     try {
+      const response = await api.get(`/api/hackathons/${id}/join`);
+      return response.data.data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch hackathon');
+    }
+  },
+  async leaveHackathon(id : string) : Promise<Hackathon>{
+     try {
+      const response = await api.get(`/api/hackathons/${id}/leave`);
+      return response.data.data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch hackathon');
+    }
   },
 
   // Get single hackathon
@@ -102,21 +114,5 @@ export const hackathonService = {
     return response.data.data;
   },
 
-  // Create hackathon
-  create: async (hackathonData: Partial<Hackathon>): Promise<Hackathon> => {
-    const response = await api.post('/api/hackathons/new', hackathonData);
-    return response.data.data;
-  },
-
-  // Update hackathon
-  update: async (id: string, hackathonData: Partial<Hackathon>): Promise<Hackathon> => {
-    const response = await api.put(`/hackathons/${id}`, hackathonData);
-    return response.data.data;
-  },
-
-  // Delete hackathon
-  delete: async (id: string, reason?: string): Promise<void> => {
-    await api.delete(`/hackathons/${id}`, { data: { reason } });
-  },
 
 };

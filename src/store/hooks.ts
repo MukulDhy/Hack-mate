@@ -21,7 +21,7 @@ export const useAuth = () => {
 export const useUser = () => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth);
-  
+
   return {
     ...user,
     dispatch,

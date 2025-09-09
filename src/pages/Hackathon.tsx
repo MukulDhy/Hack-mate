@@ -3,6 +3,12 @@ import { Calendar, Clock, MapPin, Users, Trophy, DollarSign, Globe, Linkedin, Tw
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '@/config/API_URL';
+import { useAppDispatch, useAppSelector, useUser } from '@/store/hooks';
+import { changeConnect } from '@/store/slices/websocketSlice';
+import { webSocketService } from '@/store';
+import { showError, showSuccess } from '@/components/ui/ToasterMsg';
+import { userFetchHackathon } from '@/store/slices/userCurrrentHacthon';
+import { joinLobby } from '@/slices/lobbiesSlice';
 
 const HackathonDetailsPage = () => {
   const [hackathonData, setHackathonData] = useState(null);
@@ -16,21 +22,6 @@ const HackathonDetailsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Toast functions (you can replace these with your actual toast implementation)
-  const showError = (message, title = "Error", duration = 3000) => {
-    console.error(`${title}: ${message}`);
-    // Replace with your actual toast implementation
-  };
-
-  const showWarning = (message, title = "Warning", duration = 3000) => {
-    console.warn(`${title}: ${message}`);
-    // Replace with your actual toast implementation
-  };
-
-  const showSuccess = (message, title = "Success", duration = 3000) => {
-    console.log(`${title}: ${message}`);
-    // Replace with your actual toast implementation
-  };
 
   useEffect(() => {
     fetchHackathonData();
@@ -72,26 +63,50 @@ const HackathonDetailsPage = () => {
       setLoading(false);
     }
   };
+  const dispatch = useAppDispatch();
+  const {user,isAuthenticated,token} =  useUser();
+  const {connectWs,isConnected} = useAppSelector((state) => state.websocket);
+const handleJoinHackathon = async () => {
+  try {
+    setJoining(true);
 
-  const handleJoinHackathon = async () => {
-    try {
-      setJoining(true);
+    // 1. Decide new connect state
+    // const newStatus = !connectWs;
+
+
+    // // 2. Update redux
+    // dispatch(changeConnect({ changeStatus: newStatus }));
+
+    // // 3. WebSocket logic based on newStatus
+    // if (newStatus && !isConnected && isAuthenticated && token) {
+    //   webSocketService.connect(token);
+    // } else if (!newStatus && isConnected) {
+    //   webSocketService.disconnect();
+    // }
+
+    if(isJoined){
       
-      // Add your join hackathon API call here
-      // const response = await axios.post(`/api/hackathons/join/${id}`);
-      
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setIsJoined(!isJoined);
-      showSuccess(isJoined ? 'Successfully left hackathon' : 'Successfully joined hackathon');
-      
-    } catch (err) {
-      showError('Failed to join hackathon');
-    } finally {
-      setJoining(false);
+    }else{
+
     }
-  };
+
+
+
+
+
+    
+
+    // // 5. Toggle joined state
+    // setIsJoined(newStatus);
+    // showSuccess(newStatus ? "Successfully joined hackathon" : "Successfully left hackathon");
+
+  } catch (err) {
+    showError("Failed to join hackathon");
+  } finally {
+    setJoining(false);
+  }
+};
+
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not specified';

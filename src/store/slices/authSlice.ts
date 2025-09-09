@@ -21,6 +21,7 @@ interface AuthState {
   message: string | null;
   isAuthenticated: boolean;
   success : number;
+  connect:boolean,
   isTokenVerified: boolean; // Add this flag to track token verification status
 }
 
@@ -30,6 +31,7 @@ const initialState: AuthState = {
   isLoading: false,
   error: null,
   success:-1,
+  connect:false,
   message: null,
   isAuthenticated: false,
   isTokenVerified: false, // Initialize as false
