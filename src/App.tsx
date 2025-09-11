@@ -1,6 +1,6 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './store/hooks';
+import { useAuth, useUser } from './store/hooks';
 import { verifyToken } from './store/slices/authSlice';
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -18,11 +18,12 @@ import { useEffect } from "react";
 import ScrollToTop from './components/layout/scroll-to-top';
 import HackathonPage from './pages/HackathonPage';
 import HackathonDetailsPage from './pages/Hackathon';
+import { userFetchHackathon } from './store/slices/userCurrrentHacthon';
 
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, dispatch,message } = useAuth();
-  
+  const {user} = useUser();
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && !isAuthenticated) {
@@ -30,6 +31,13 @@ const AppContent: React.FC = () => {
     }
   }, [dispatch, isAuthenticated]);
 
+
+  useEffect(() => {
+    console.log(user);
+    if(user && user?.currentHackathonId){
+    dispatch(userFetchHackathon(user.currentHackathonId));
+    }
+  },[user?.currentHackathonId])
   // if (isLoading) {
   //   return (
   //     <div className="min-h-screen bg-background flex items-center justify-center">

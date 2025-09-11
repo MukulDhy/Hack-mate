@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Hackathon, HackathonFilters, HackathonStatus } from '@/types/hackathon';
 import { hackathonService } from '@/service/hackathonService';
+import { updateUser } from '@/slices/authSlice';
+import { useAppDispatch } from '@/hooks/redux-hooks';
 
 interface HackathonState {
   hackathon: Hackathon;
@@ -29,7 +31,7 @@ export const userDefetchHackathon = createAsyncThunk(
   'hackathon/userDefetchHackathon',
   async ( id: string,{ rejectWithValue }) => {
     try {
-      return await hackathonService.getById(id);
+      return null;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -40,7 +42,11 @@ export const joinHackathon = createAsyncThunk(
   'hackathon/userJoinHackathon',
   async ( id: string,{ rejectWithValue }) => {
     try {
-      return await hackathonService.joinHackathon(id);
+           const response = await hackathonService.joinHackathon(id);
+      
+      // 👇 Reset currentHackathonId in auth slice
+      useAppDispatch()(updateUser({ currentHackathonId: response._id }));
+
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -102,6 +108,19 @@ const userHackathonSlice = createSlice({
        state.hackathon = null;
       })
       .addCase(userDefetchHackathon.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+      builder
+      .addCase(joinHackathon.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(joinHackathon.fulfilled, (state, action) => {
+        state.loading = false;
+       state.hackathon = action.payload;
+      })
+      .addCase(joinHackathon.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

@@ -91,7 +91,7 @@ export const hackathonService = {
 
   async joinHackathon(id : string) : Promise<Hackathon>{
      try {
-      const response = await api.get(`/api/hackathons/${id}/join`);
+      const response = await api.post(`/api/hackathons/${id}/join`);
       return response.data.data;
     } catch (error) {
       console.error('API Error:', error);
@@ -100,7 +100,7 @@ export const hackathonService = {
   },
   async leaveHackathon(id : string) : Promise<Hackathon>{
      try {
-      const response = await api.get(`/api/hackathons/${id}/leave`);
+      const response = await api.post(`/api/hackathons/${id}/leave`);
       return response.data.data;
     } catch (error) {
       console.error('API Error:', error);

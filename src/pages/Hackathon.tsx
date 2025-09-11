@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector, useUser } from '@/store/hooks';
 import { changeConnect } from '@/store/slices/websocketSlice';
 import { webSocketService } from '@/store';
 import { showError, showSuccess } from '@/components/ui/ToasterMsg';
-import { userFetchHackathon } from '@/store/slices/userCurrrentHacthon';
+import { joinHackathon, leaveHackathon, userFetchHackathon } from '@/store/slices/userCurrrentHacthon';
 import { joinLobby } from '@/slices/lobbiesSlice';
 
 const HackathonDetailsPage = () => {
@@ -70,42 +70,26 @@ const handleJoinHackathon = async () => {
   try {
     setJoining(true);
 
-    // 1. Decide new connect state
-    // const newStatus = !connectWs;
-
-
-    // // 2. Update redux
-    // dispatch(changeConnect({ changeStatus: newStatus }));
-
-    // // 3. WebSocket logic based on newStatus
-    // if (newStatus && !isConnected && isAuthenticated && token) {
-    //   webSocketService.connect(token);
-    // } else if (!newStatus && isConnected) {
-    //   webSocketService.disconnect();
-    // }
-
-    if(isJoined){
-      
-    }else{
-
+    if (isJoined) {
+      // Leave hackathon
+      await dispatch(leaveHackathon(id)).unwrap();
+      setIsJoined(false);
+      showSuccess("Successfully left hackathon");
+    } else {
+      // Join hackathon
+      await dispatch(joinHackathon(id)).unwrap();
+      setIsJoined(true);
+      showSuccess("Successfully joined hackathon");
     }
 
-
-
-
-
-    
-
-    // // 5. Toggle joined state
-    // setIsJoined(newStatus);
-    // showSuccess(newStatus ? "Successfully joined hackathon" : "Successfully left hackathon");
-
   } catch (err) {
-    showError("Failed to join hackathon");
+    console.error("Hackathon join/leave error:", err);
+    showError(err,"Failed to join/Leave");
   } finally {
     setJoining(false);
   }
 };
+
 
 
   const formatDate = (dateString) => {

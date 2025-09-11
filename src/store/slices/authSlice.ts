@@ -4,8 +4,17 @@ import { authService } from "../../service/authService";
 import { showWarning } from '@/components/ui/ToasterMsg';
 
 export interface User {
+  _id : string;
   email: string;
   name: string;
+  skills: string[];
+  profilePicture : string;
+  isEmailVerified:boolean;
+  isActive:boolean;
+  currentHackathonId : string;
+  role:string;  
+  profileCompletion:number;
+  lastLogin:Date
 }
 
 export interface ErrorValidate {
