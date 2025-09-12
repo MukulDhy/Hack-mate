@@ -110,7 +110,7 @@ export const hackathonService = {
 
   // Get single hackathon
   getById: async (id: string): Promise<Hackathon> => {
-    const response = await api.get(`/hackathons/${id}`);
+    const response = await api.get(`/api/hackathons/${id}`);
     return response.data.data;
   },
 

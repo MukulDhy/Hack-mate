@@ -12,9 +12,10 @@ import { joinLobby } from '@/slices/lobbiesSlice';
 
 const HackathonDetailsPage = () => {
   const [hackathonData, setHackathonData] = useState(null);
+  const userhack = useAppSelector((state) => state.userHack);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isJoined, setIsJoined] = useState(false);
+  const [isJoined, setIsJoined] = useState(userhack.joined);
   const [theme, setTheme] = useState('dark');
   const [joining, setJoining] = useState(false);
 
@@ -369,7 +370,7 @@ const handleJoinHackathon = async () => {
                 {joining ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {isJoined ? 'Leaving...' : 'Joining...'}
+                    {joining ? 'Leaving...' : 'Joining...'}
                   </div>
                 ) : (
                   isJoined ? '✓ Joined Lobby' : 'Join Hackathon'

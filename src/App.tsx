@@ -19,6 +19,8 @@ import ScrollToTop from './components/layout/scroll-to-top';
 import HackathonPage from './pages/HackathonPage';
 import HackathonDetailsPage from './pages/Hackathon';
 import { userFetchHackathon } from './store/slices/userCurrrentHacthon';
+import TeamAssignment from './pages/TeamAssignment';
+import TeamChat from './pages/TeamChat';
 
 
 const AppContent: React.FC = () => {
@@ -37,7 +39,7 @@ const AppContent: React.FC = () => {
     if(user && user?.currentHackathonId){
     dispatch(userFetchHackathon(user.currentHackathonId));
     }
-  },[user?.currentHackathonId])
+  },[user,user?.currentHackathonId])
   // if (isLoading) {
   //   return (
   //     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -84,6 +86,10 @@ const AppContent: React.FC = () => {
                   <Route 
                     path="/hackathon/:id" 
                     element={isAuthenticated ? <HackathonDetailsPage /> : <Navigate to="/login" />} 
+                  />
+                   <Route 
+                    path="/team" 
+                    element={<TeamChat></TeamChat>} 
                   />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
