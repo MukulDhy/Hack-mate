@@ -23,6 +23,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/redux-hooks';
 import { addMessage, updateMessageStatus } from '../slices/teamSlice';
+import { changeConnect } from '@/store/slices/websocketSlice';
+import { useUser } from '@/store/hooks';
+import { webSocketService } from '@/store';
 
 interface HackathonData {
   title: string;
@@ -88,7 +91,7 @@ export default function TeamChat() {
     tags: hackathon?.tags || ['AI', 'Collaboration', 'Innovation', 'SaaS'],
     timeLeft: '23:59:51'
   };
-
+ 
   const teamData: TeamData = {
     members: [
       { id: 1, name: 'Alex Johnson', role: 'Team Lead', status: 'active', avatar: 'AJ' },
@@ -101,7 +104,8 @@ export default function TeamChat() {
 
   const [newMessage, setNewMessage] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<string>(hackathonData.timeLeft);
-
+ const {user,isAuthenticated,token} =  useUser();
+  const {connectWs,isConnected} = useAppSelector((state) => state.websocket);
   useEffect(() => {
     // Simulate message read status updates
     const timer = setTimeout(() => {
@@ -117,6 +121,24 @@ export default function TeamChat() {
 
     return () => clearTimeout(timer);
   }, [messages, currentUser, dispatch]);
+
+
+useEffect(() => {
+  // ✅ When this page loads, request connection
+  dispatch(changeConnect({ changeStatus: true }));
+
+  if (!isConnected && isAuthenticated && token) {
+    webSocketService.connect(token);
+  }
+
+  // ✅ Clean up when leaving page
+  return () => {
+    dispatch(changeConnect({ changeStatus: false }));
+    if (isConnected) {
+      webSocketService.disconnect();
+    }
+  };
+}, [dispatch, isAuthenticated, token, isConnected]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
