@@ -1,603 +1,302 @@
-import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin, Users, Trophy, DollarSign, Globe, Linkedin, Twitter, MessageSquare, Github, Mail, Phone, Building, Award, FileText, CheckCircle, AlertCircle, Play, User, ArrowLeft } from 'lucide-react';
-import { useLocation, useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { motion } from 'framer-motion';
+import { useState, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { GlassCard } from '@/components/ui/glass-card';
+import { BackgroundScene } from '@/components/3d/background-scene';
+import { Eye, EyeOff, Mail, Lock, User, Github, Chrome, Loader2 } from 'lucide-react';
+import { showSuccess, showWarning } from '@/components/ui/ToasterMsg';
+import { registerUser } from '@/store/slices/authSlice';
+import { useAppDispatch } from '@/store/hooks';
 
-const HackathonDetailsPage = () => {
-  const [hackathonData, setHackathonData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isJoined, setIsJoined] = useState(false);
-  const [theme, setTheme] = useState('dark');
-  const [joining, setJoining] = useState(false);
+export default function Signup() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    agreedToTerms: false
+  });
 
-  const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const dispatch = useAppDispatch();
 
-  // Toast functions (you can replace these with your actual toast implementation)
-  const showError = (message, title = "Error", duration = 3000) => {
-    console.error(`${title}: ${message}`);
-    // Replace with your actual toast implementation
+  const handleInputChange = useCallback((field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const validateForm = () => {
+    if (formData.name.trim() === "") {
+      showWarning("Name Can't Be Blank", "Validation", 3000);
+      return false;
+    }
+
+    if (formData.email.trim() === "") {
+      showWarning("Email Can't Be Blank", "Validation", 3000);
+      return false;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      showWarning("Please enter a valid email address", "Validation", 3000);
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      showWarning("Password must be at least 6 characters", "Validation", 3000);
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      showWarning("Passwords must match", "Validation", 3000);
+      setShowPassword(true);
+      setShowConfirmPassword(true);
+      return false;
+    }
+
+    if (!formData.agreedToTerms) {
+      showWarning("You must agree to the terms and conditions", "Validation", 3000);
+      return false;
+    }
+
+    return true;
   };
 
-  const showWarning = (message, title = "Warning", duration = 3000) => {
-    console.warn(`${title}: ${message}`);
-    // Replace with your actual toast implementation
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    
+    const { confirmPassword, agreedToTerms, ...data } = formData;
 
-  const showSuccess = (message, title = "Success", duration = 3000) => {
-    console.log(`${title}: ${message}`);
-    // Replace with your actual toast implementation
-  };
-
-  useEffect(() => {
-    fetchHackathonData();
-  }, [id]);
-
-  const fetchHackathonData = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      // Validate ID format
-      if (!id || id.length !== 24) {
-        setError('Invalid hackathon ID');
-        return;
-      }
-
-      const response = await axios.get(`/api/hackathons/${id}`);
+      const result = await dispatch(registerUser(data));
       
-      if (response.data.success) {
-        setHackathonData(response.data.data);
-      } else {
-        setError(response.data.message || 'Failed to fetch hackathon');
+      if (registerUser.fulfilled.match(result)) {
+        showSuccess("Registration successful!", "Success", 3000);
+        navigate("/dashboard");
+      } else if (registerUser.rejected.match(result)) {
+        const errorPayload = result.payload;
+        
+        if (errorPayload?.errorCode === 1) {
+          const errors = errorPayload?.errors || [];
+          if (errors.length > 0) {
+            errors.forEach((error: any) => {
+              showWarning(error.message || 'Registration failed', 'Error', 5000);
+            });
+          } else {
+            showWarning(result.payload?.message || 'Registration failed', 'Error', 5000);
+          }
+        } else {
+          showWarning(errorPayload?.message || "Registration failed", "Error", 6000);
+        }
       }
-    } catch (err) {
-      console.error('Fetch hackathon error:', err);
-      
-      if (err.response?.status === 404) {
-        setError('Hackathon not found');
-      } else if (err.response?.status === 400) {
-        setError('Invalid request');
-      } else if (err.code === 'NETWORK_ERROR') {
-        setError('Network error. Please check your connection.');
-      } else {
-        setError('Failed to load hackathon details');
-      }
-      
-      showError(err.response?.data?.message || 'Failed to load hackathon details');
+    } catch (error) {
+      showWarning("An unexpected error occurred", "Error", 6000);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  const handleJoinHackathon = async () => {
-    try {
-      setJoining(true);
-      
-      // Add your join hackathon API call here
-      // const response = await axios.post(`/api/hackathons/${id}/join`);
-      
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setIsJoined(!isJoined);
-      showSuccess(isJoined ? 'Successfully left hackathon' : 'Successfully joined hackathon');
-      
-    } catch (err) {
-      showError('Failed to join hackathon');
-    } finally {
-      setJoining(false);
-    }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not specified';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'registration_open': return 'text-green-500';
-      case 'upcoming': return 'text-blue-500';
-      case 'ongoing': return 'text-yellow-500';
-      case 'completed': return 'text-gray-500';
-      default: return 'text-gray-500';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'registration_open': return <CheckCircle className="w-5 h-5" />;
-      case 'upcoming': return <Clock className="w-5 h-5" />;
-      case 'ongoing': return <Play className="w-5 h-5" />;
-      default: return <AlertCircle className="w-5 h-5" />;
-    }
-  };
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className={`mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-            Loading hackathon details...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        <div className="text-center py-12 px-6">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Oops! Something went wrong</h2>
-          <p className={`mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-            {error}
-          </p>
-          <div className="space-x-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 inline mr-2" />
-              Go Back
-            </button>
-            <button
-              onClick={fetchHackathonData}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // No data state
-  if (!hackathonData) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        <div className="text-center py-12">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">No Data Available</h2>
-          <p className={`mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-            Unable to load hackathon information
-          </p>
-          <button
-            onClick={() => navigate(-1)}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 inline mr-2" />
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Back Button */}
-      <div className="sticky top-0 z-10 bg-opacity-80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate(-1)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              theme === 'dark' 
-                ? 'hover:bg-gray-800 text-gray-300 hover:text-white' 
-                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Hackathons
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen animated-bg relative overflow-hidden flex items-center justify-center p-4">
+      <BackgroundScene className="absolute inset-0 w-full h-full" />
 
-      {/* Hero Section */}
-      <div className="relative h-96 overflow-hidden">
-        <img
-          src={hackathonData.bannerImage || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2071&q=80'}
-          alt="Hackathon Banner"
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.target.src = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2071&q=80';
-          }}
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="text-center text-white px-6">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">{hackathonData.title}</h1>
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(hackathonData.status)} bg-white bg-opacity-20`}>
-              {getStatusIcon(hackathonData.status)}
-              {hackathonData.status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
-            </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative w-full max-w-md"
+      >
+        <GlassCard className="p-8 shadow-strong">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-primary flex items-center justify-center shadow-glow"
+            >
+              <span className="font-orbitron font-bold text-2xl text-white">HM</span>
+            </motion.div>
+            
+            <h1 className="font-orbitron font-bold text-3xl text-foreground mb-2">
+              Join Hack Mate
+            </h1>
+            <p className="text-muted-foreground">
+              Create your account and start building the future
+            </p>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Main Details */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Description */}
-            <section className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-              <h2 className="text-2xl font-bold mb-4">About This Hackathon</h2>
-              <p className={`text-lg leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                {hackathonData.description || 'No description available.'}
-              </p>
-            </section>
+          {/* Social Signup */}
+          <div className="space-y-3 mb-6">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              className="w-full h-12 border border-glass-border hover:bg-primary/10"
+              disabled={isLoading}
+            >
+              <Github className="w-5 h-5 mr-3" />
+              Continue with GitHub
+            </Button>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              className="w-full h-12 border border-glass-border hover:bg-primary/10"
+              disabled={isLoading}
+            >
+              <Chrome className="w-5 h-5 mr-3" />
+              Continue with Google
+            </Button>
+          </div>
 
-            {/* Problem Statements */}
-            {hackathonData.problemStatements && hackathonData.problemStatements.length > 0 && (
-              <section className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-blue-500" />
-                  Problem Statements
-                </h2>
-                <div className="grid gap-3">
-                  {hackathonData.problemStatements.map((problem, index) => (
-                    <div key={index} className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                      <div className="flex items-start gap-3">
-                        <span className="bg-blue-500 text-white text-sm font-bold px-2 py-1 rounded">
-                          {index + 1}
-                        </span>
-                        <p className="flex-1">{problem}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+          {/* Divider */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-1 h-px bg-glass-border"></div>
+            <span className="text-sm text-muted-foreground">OR</span>
+            <div className="flex-1 h-px bg-glass-border"></div>
+          </div>
 
-            {/* Prizes */}
-            {hackathonData.prizes && hackathonData.prizes.length > 0 && (
-              <section className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-yellow-500" />
-                  Prizes & Rewards
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {hackathonData.prizes.map((prize, index) => (
-                    <div key={index} className={`p-4 rounded-lg border-2 ${theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'}`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Award className="w-5 h-5 text-yellow-500" />
-                        <h3 className="font-bold text-lg">{prize.position}</h3>
-                      </div>
-                      <p className="text-2xl font-bold text-green-500 mb-2">
-                        ${prize.amount?.toLocaleString() || '0'}
-                      </p>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                        {prize.rewards || 'No rewards specified'}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+          {/* Signup Form */}
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Name Field */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-foreground font-medium">Full Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="pl-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
+                  placeholder="Enter your full name"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
 
-            {/* Rules & Requirements */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Requirements */}
-              {hackathonData.requirements && hackathonData.requirements.length > 0 && (
-                <section className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                  <h3 className="text-xl font-bold mb-4">Requirements</h3>
-                  <ul className="space-y-2">
-                    {hackathonData.requirements.map((req, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{req}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+            {/* Email Field */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-foreground font-medium">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="pl-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
+                  placeholder="Enter your email"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="pl-10 pr-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
+                  placeholder="Create a password"
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Confirm Password Field */}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-foreground font-medium">Confirm Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  className="pl-10 pr-10 h-12 bg-background/50 border-glass-border focus:border-primary focus:ring-primary/20"
+                  placeholder="Confirm your password"
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                  disabled={isLoading}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Terms & Conditions */}
+            <div className="flex items-start gap-3">
+              <input 
+                type="checkbox" 
+                id="terms" 
+                className="mt-1 rounded border-glass-border" 
+                checked={formData.agreedToTerms}
+                onChange={(e) => handleInputChange('agreedToTerms', e.target.checked)}
+                disabled={isLoading}
+              />
+              <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
+                I agree to the{' '}
+                <Link to="/terms" className="text-primary hover:text-primary/80">Terms of Service</Link>
+                {' '}and{' '}
+                <Link to="/privacy" className="text-primary hover:text-primary/80">Privacy Policy</Link>
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-primary hover:shadow-glow transition-all duration-300"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
               )}
+            </Button>
+          </form>
 
-              {/* Rules */}
-              {hackathonData.rules && hackathonData.rules.length > 0 && (
-                <section className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                  <h3 className="text-xl font-bold mb-4">Rules</h3>
-                  <ul className="space-y-2">
-                    {hackathonData.rules.map((rule, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{rule}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-            </div>
-
-            {/* FAQ */}
-            {hackathonData.faqs && hackathonData.faqs.length > 0 && (
-              <section className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                <h2 className="text-2xl font-bold mb-4">Frequently Asked Questions</h2>
-                <div className="space-y-4">
-                  {hackathonData.faqs.map((faq, index) => (
-                    <details key={index} className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                      <summary className="font-semibold cursor-pointer hover:text-blue-500 transition-colors">
-                        {faq.question}
-                      </summary>
-                      <p className={`mt-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                        {faq.answer}
-                      </p>
-                    </details>
-                  ))}
-                </div>
-              </section>
-            )}
+          {/* Sign In Link */}
+          <div className="text-center mt-6">
+            <span className="text-muted-foreground">Already have an account? </span>
+            <Link to="/login" className="text-primary hover:text-primary/80 font-medium transition-colors">
+              Sign in
+            </Link>
           </div>
-
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Registration Card */}
-            <div className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Members Joined
-                  </span>
-                  <span className="text-2xl font-bold text-blue-500">
-                    {hackathonData.totalMembersJoined?.toLocaleString() || '0'}
-                  </span>
-                </div>
-                {hackathonData.maxRegistrations && (
-                  <>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${Math.min(((hackathonData.totalMembersJoined || 0) / hackathonData.maxRegistrations) * 100, 100)}%` 
-                        }}
-                      ></div>
-                    </div>
-                    <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {Math.max(hackathonData.maxRegistrations - (hackathonData.totalMembersJoined || 0), 0)} spots remaining
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <button
-                onClick={handleJoinHackathon}
-                disabled={joining}
-                className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
-                  isJoined 
-                    ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-blue-500 hover:bg-blue-600'
-                }`}
-              >
-                {joining ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {isJoined ? 'Leaving...' : 'Joining...'}
-                  </div>
-                ) : (
-                  isJoined ? '✓ Joined Lobby' : 'Join Hackathon'
-                )}
-              </button>
-            </div>
-
-            {/* Event Details */}
-            <div className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-              <h3 className="text-xl font-bold mb-4">Event Details</h3>
-              <div className="space-y-4">
-                {hackathonData.registrationDeadline && (
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-blue-500" />
-                    <div>
-                      <p className="font-semibold text-sm">Registration Deadline</p>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {formatDate(hackathonData.registrationDeadline)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {(hackathonData.startDate || hackathonData.endDate) && (
-                  <div className="flex items-center gap-3">
-                    <Play className="w-5 h-5 text-green-500" />
-                    <div>
-                      <p className="font-semibold text-sm">Event Duration</p>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {formatDate(hackathonData.startDate)} - {formatDate(hackathonData.endDate)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {hackathonData.venue && (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-red-500" />
-                    <div>
-                      <p className="font-semibold text-sm">Venue</p>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {hackathonData.venue}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {hackathonData.mode && (
-                  <div className="flex items-center gap-3">
-                    <Globe className="w-5 h-5 text-purple-500" />
-                    <div>
-                      <p className="font-semibold text-sm">Mode</p>
-                      <p className={`text-sm capitalize ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {hackathonData.mode}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {hackathonData.maxTeamSize && (
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-orange-500" />
-                    <div>
-                      <p className="font-semibold text-sm">Team Size</p>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        1-{hackathonData.maxTeamSize} members
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3">
-                  <DollarSign className="w-5 h-5 text-green-500" />
-                  <div>
-                    <p className="font-semibold text-sm">Registration Fee</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {(hackathonData.registrationFee === 0 || !hackathonData.registrationFee) ? 'Free' : `$${hackathonData.registrationFee}`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tags */}
-            {hackathonData.tags && hackathonData.tags.length > 0 && (
-              <div className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                <h3 className="text-xl font-bold mb-4">Technologies</h3>
-                <div className="flex flex-wrap gap-2">
-                  {hackathonData.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        theme === 'dark' 
-                          ? 'bg-blue-900 text-blue-200' 
-                          : 'bg-blue-100 text-blue-800'
-                      }`}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Organizer */}
-            {hackathonData.organizer && (
-              <div className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                <h3 className="text-xl font-bold mb-4">Organizer</h3>
-                <div className="space-y-3">
-                  {hackathonData.organizer.organization && (
-                    <div className="flex items-center gap-2">
-                      <Building className="w-4 h-4 text-gray-500" />
-                      <span className="font-semibold">{hackathonData.organizer.organization}</span>
-                    </div>
-                  )}
-                  {hackathonData.organizer.name && (
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span>{hackathonData.organizer.name}</span>
-                    </div>
-                  )}
-                  {hackathonData.organizer.contactEmail && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <a href={`mailto:${hackathonData.organizer.contactEmail}`} className="text-blue-500 hover:underline">
-                        {hackathonData.organizer.contactEmail}
-                      </a>
-                    </div>
-                  )}
-                  {hackathonData.organizer.contactNumber && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span>{hackathonData.organizer.contactNumber}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Social Links */}
-            {hackathonData.socialLinks && Object.values(hackathonData.socialLinks).some(link => link) && (
-              <div className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                <h3 className="text-xl font-bold mb-4">Connect With Us</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {hackathonData.socialLinks.website && (
-                    <a
-                      href={hackathonData.socialLinks.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`p-3 rounded-lg text-center transition-colors ${
-                        theme === 'dark' 
-                          ? 'bg-gray-700 hover:bg-gray-600' 
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
-                    >
-                      <Globe className="w-5 h-5 mx-auto mb-1" />
-                      <span className="text-xs">Website</span>
-                    </a>
-                  )}
-                  {hackathonData.socialLinks.linkedin && (
-                    <a
-                      href={hackathonData.socialLinks.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`p-3 rounded-lg text-center transition-colors ${
-                        theme === 'dark' 
-                          ? 'bg-gray-700 hover:bg-gray-600' 
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
-                    >
-                      <Linkedin className="w-5 h-5 mx-auto mb-1 text-blue-500" />
-                      <span className="text-xs">LinkedIn</span>
-                    </a>
-                  )}
-                  {hackathonData.socialLinks.twitter && (
-                    <a
-                      href={hackathonData.socialLinks.twitter}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`p-3 rounded-lg text-center transition-colors ${
-                        theme === 'dark' 
-                          ? 'bg-gray-700 hover:bg-gray-600' 
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
-                    >
-                      <Twitter className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-                      <span className="text-xs">Twitter</span>
-                    </a>
-                  )}
-                  {hackathonData.socialLinks.discord && (
-                    <a
-                      href={hackathonData.socialLinks.discord}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`p-3 rounded-lg text-center transition-colors ${
-                        theme === 'dark' 
-                          ? 'bg-gray-700 hover:bg-gray-600' 
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
-                    >
-                      <MessageSquare className="w-5 h-5 mx-auto mb-1 text-purple-500" />
-                      <span className="text-xs">Discord</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+        </GlassCard>
+      </motion.div>
     </div>
   );
-};
-
-export default HackathonDetailsPage;
+}
