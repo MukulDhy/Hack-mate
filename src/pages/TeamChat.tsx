@@ -26,23 +26,9 @@ import { addMessage, updateMessageStatus } from '../slices/teamSlice';
 import { changeConnect } from '@/store/slices/websocketSlice';
 import { useUser } from '@/store/hooks';
 import { webSocketService } from '@/store';
+import { Hackathon } from '@/types/hackathon';
+import { showWarning } from '@/components/ui/ToasterMsg';
 
-interface HackathonData {
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  submissionDeadline: string;
-  maxTeamSize: number;
-  venue: string;
-  mode: string;
-  registrationFee: number;
-  status: string;
-  problemStatements: string[];
-  submissionFormat: string;
-  tags: string[];
-  timeLeft: string;
-}
 
 interface TeamMember {
   id: number;
@@ -71,7 +57,7 @@ export default function TeamChat() {
   const { hackathon } = useAppSelector((state) => state.userHack);
   
   // Safely create hackathonData with fallback values
-  const hackathonData: HackathonData = {
+  const hackathonData: Hackathon = {
     title: hackathon?.title || 'AI Innovation Challenge',
     description: hackathon?.description || 'Build an AI-powered collaboration tool that revolutionizes how teams work together in virtual environments. Focus on creating innovative solutions that enhance productivity and communication.',
     startDate: hackathon?.startDate || '2025-09-10T09:00:00Z',
@@ -89,7 +75,7 @@ export default function TeamChat() {
     ],
     submissionFormat: hackathon?.submissionFormat || 'GitHub repository + Live demo + Presentation slides',
     tags: hackathon?.tags || ['AI', 'Collaboration', 'Innovation', 'SaaS'],
-    timeLeft: '23:59:51'
+
   };
  
   const teamData: TeamData = {
@@ -103,7 +89,7 @@ export default function TeamChat() {
   };
 
   const [newMessage, setNewMessage] = useState<string>('');
-  const [timeLeft, setTimeLeft] = useState<string>(hackathonData.timeLeft);
+  const [timeLeft, setTimeLeft] = useState<string>('23:59:51');
  const {user,isAuthenticated,token} =  useUser();
   const {connectWs,isConnected} = useAppSelector((state) => state.websocket);
   useEffect(() => {
@@ -149,7 +135,7 @@ useEffect(() => {
     }
 
     if (newMessage.trim().length > 1000) {
-      alert('Message is too long. Please keep it under 1000 characters.');
+      showWarning('Message is too long. Please keep it under 1000 characters.',"Message Validate");
       return;
     }
 
@@ -164,7 +150,7 @@ useEffect(() => {
       lastMessage.text === newMessage.trim() &&
       lastMessage.sender === currentUser
     ) {
-      alert('Please avoid sending duplicate messages.');
+    showWarning('Please avoid sending duplicate messages.',"Message Validate");
       return;
     }
 
