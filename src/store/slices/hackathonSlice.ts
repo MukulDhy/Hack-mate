@@ -1,5 +1,6 @@
+// store/slices/hackathonSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Hackathon, HackathonFilters, HackathonStatus } from '@/types/hackathon';
+import { Hackathon, HackathonFilters } from '@/types/hackathon';
 import { hackathonService } from '@/service/hackathonService';
 
 interface HackathonState {
@@ -49,7 +50,7 @@ const hackathonSlice = createSlice({
   initialState,
   reducers: {
     setFilters: (state, action: PayloadAction<Partial<HackathonFilters>>) => {
-      state.filters = { ...state.filters, ...action.payload, page: 1 };
+      state.filters = { ...state.filters, ...action.payload };
     },
     setPage: (state, action: PayloadAction<number>) => {
       state.filters.page = action.payload;
@@ -71,7 +72,19 @@ const hackathonSlice = createSlice({
       })
       .addCase(fetchHackathons.fulfilled, (state, action) => {
         state.loading = false;
-        state.hackathons = action.payload.data;
+        
+        // Ensure ended hackathons are marked as completed
+        const now = new Date();
+        state.hackathons = action.payload.data.map((hackathon: Hackathon) => {
+          const endDate = new Date(hackathon.endDate);
+          const isEnded = endDate < now;
+
+          if (isEnded && hackathon.status !== 'completed' && hackathon.status !== 'cancelled') {
+            return { ...hackathon, status: 'completed' };
+          }
+          return hackathon;
+        });
+
         state.pagination = {
           currentPage: action.payload.currentPage,
           totalPages: action.payload.totalPages,

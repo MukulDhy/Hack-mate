@@ -1,3 +1,4 @@
+// pages/Lobbies.tsx
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -6,17 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { SearchInput } from '@/components/ui/search-input';
 import { FilterSelect } from '@/components/ui/filter-select';
 import { 
-  Search, 
-  Filter, 
   Users, 
   Clock, 
   Trophy, 
   Zap,
-  Star,
   MapPin,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/index';
 import { fetchHackathons, setFilters } from '@/store/slices/hackathonSlice';
@@ -46,6 +45,13 @@ const typeOptions = [
   { value: 'hybrid', label: 'Hybrid', count: 0 }
 ];
 
+const statusOptions = [
+  { value: 'upcoming', label: 'Upcoming', count: 0 },
+  { value: 'registration_open', label: 'Registration Open', count: 0 },
+  { value: 'ongoing', label: 'Ongoing', count: 0 },
+  { value: 'completed', label: 'Completed', count: 0 }
+];
+
 export default function Lobbies() {
   const dispatch = useDispatch<AppDispatch>();
   const { hackathons, loading, error, filters, pagination } = useSelector(
@@ -54,30 +60,62 @@ export default function Lobbies() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<'newest' | 'oldest' | 'soonest' | 'ending_soon'>('newest');
+
+  const navigate = useNavigate();
+
+  // Memoized filtered hackathons for better performance
+  const filteredHackathons = useMemo(() => {
+    if (!hackathons.length) return [];
+    
+    return hackathons.filter(hackathon => {
+      // Check if hackathon has ended
+      const now = new Date();
+      const endDate = new Date(hackathon.endDate);
+      const isEnded = endDate < now;
+      
+      // If ended, mark as completed
+      if (isEnded && hackathon.status !== 'completed' && hackathon.status !== 'cancelled') {
+        hackathon.status = 'completed';
+      }
+      
+      return true;
+    }).sort((a, b) => {
+      // Sort based on date filter
+      switch (dateFilter) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'soonest':
+          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+        case 'ending_soon':
+          return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+        default:
+          return 0;
+      }
+    });
+  }, [hackathons, dateFilter]);
 
   // Fetch hackathons on component mount and when filters change
   useEffect(() => {
-    const fetchData = async () => {
-      const filterParams: any = {
-        ...filters,
-        search: searchTerm || undefined,
-        tags: selectedTags.length > 0 ? selectedTags : undefined,
-        mode: selectedTypes.length > 0 ? selectedTypes.join(',') : undefined,
-      };
-      
-      await dispatch(fetchHackathons(filterParams));
+    const filterParams: any = {
+      ...filters,
+      search: searchTerm || undefined,
+      tags: selectedTags.length > 0 ? selectedTags : undefined,
+      mode: selectedTypes.length > 0 ? selectedTypes.join(',') : undefined,
+      status: selectedStatus.length > 0 ? selectedStatus.join(',') : undefined,
     };
+    
+    dispatch(fetchHackathons(filterParams));
+  }, [dispatch, filters, searchTerm, selectedTags, selectedTypes, selectedStatus]);
 
-    fetchData();
-  }, [dispatch, filters, searchTerm, selectedTags, selectedTypes]);
-
-  const navigation = useNavigate();
-  const handleHackathonClick = (id) => {
-    navigation(`/hackathon/${id}`);
-  }
+  const handleHackathonClick = useCallback((id: string) => {
+    navigate(`/hackathon/${id}`);
+  }, [navigate]);
 
   // Debounced search
   useEffect(() => {
@@ -88,56 +126,72 @@ export default function Lobbies() {
     return () => clearTimeout(timer);
   }, [searchTerm, dispatch]);
 
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategory(category);
     if (category === 'All') {
       setSelectedTags([]);
     } else {
       setSelectedTags([category]);
     }
-  };
+  }, []);
 
-  const getDifficultyColor = (status: HackathonStatus) => {
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm('');
+    setSelectedCategory('All');
+    setSelectedStatus([]);
+    setSelectedTypes([]);
+    setSelectedTags([]);
+    setDateFilter('newest');
+    dispatch(setFilters({ search: '', tags: undefined, mode: undefined, status: undefined }));
+  }, [dispatch]);
+
+  const getDifficultyColor = useCallback((status: HackathonStatus) => {
     switch (status) {
       case 'upcoming': return 'text-success border-success/30';
       case 'registration_open': return 'text-warning border-warning/30';
       case 'ongoing': return 'text-neon-cyan border-neon-cyan/30';
       case 'completed': return 'text-destructive border-destructive/30';
+      case 'cancelled': return 'text-destructive border-destructive/30';
       default: return 'text-muted-foreground border-muted/30';
     }
-  };
+  }, []);
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = useCallback((type: string) => {
     switch (type) {
       case 'online': return '🌐';
       case 'offline': return '📍';
       case 'hybrid': return '🔄';
       default: return '📍';
     }
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }, []);
 
-  const formatTimeLeft = (dateString: string) => {
+  const formatTimeLeft = useCallback((dateString: string) => {
     const now = new Date();
     const target = new Date(dateString);
     const diff = target.getTime() - now.getTime();
     
     if (diff <= 0) return 'Started';
     
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     
-    return `${hours}h ${minutes}m`;
-  };
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
+  }, []);
 
-  const calculateProgress = (hackathon: Hackathon) => {
+  const calculateProgress = useCallback((hackathon: Hackathon) => {
     return (hackathon.totalMembersJoined / hackathon.maxRegistrations) * 100;
-  };
+  }, []);
 
-  const getStatusText = (status: HackathonStatus) => {
+  const getStatusText = useCallback((status: HackathonStatus) => {
     switch (status) {
       case 'upcoming': return 'Upcoming';
       case 'registration_open': return 'Registration Open';
@@ -148,11 +202,17 @@ export default function Lobbies() {
       case 'cancelled': return 'Cancelled';
       default: return status;
     }
-  };
+  }, []);
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     dispatch(setFilters({ page: pagination.currentPage + 1 }));
-  };
+  }, [dispatch, pagination.currentPage]);
+
+  const isRegistrationClosed = useCallback((hackathon: Hackathon) => {
+    const now = new Date();
+    const registrationDeadline = new Date(hackathon.registrationDeadline);
+    return registrationDeadline < now || hackathon.status !== 'registration_open';
+  }, []);
 
   return (
     <div className="min-h-screen animated-bg relative overflow-hidden pt-24">
@@ -181,27 +241,85 @@ export default function Lobbies() {
                 <div className="flex-1 w-full md:w-auto">
                   <SearchInput
                     placeholder="Search hackathons, technologies, or hosts..."
+                    value={searchTerm}
                     onSearch={setSearchTerm}
                     className="w-full"
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <FilterSelect
+                    title="Status"
+                    options={statusOptions}
+                    selectedValues={selectedStatus}
+                    onSelectionChange={setSelectedStatus}
+                  />
+                  <FilterSelect
                     title="Type"
                     options={typeOptions}
                     selectedValues={selectedTypes}
                     onSelectionChange={setSelectedTypes}
                   />
+                  <select 
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value as any)}
+                    className="bg-background/20 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="soonest">Starting Soon</option>
+                    <option value="ending_soon">Ending Soon</option>
+                  </select>
                 </div>
               </div>
-              {(selectedTypes.length > 0 || selectedTags.length > 0) && (
-                <div className="flex flex-wrap gap-2">
+              
+              {/* Active filters display */}
+              {(selectedTypes.length > 0 || selectedTags.length > 0 || selectedStatus.length > 0 || searchTerm) && (
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm text-muted-foreground">Active filters:</span>
-                  {[...selectedTypes, ...selectedTags].map((filter) => (
-                    <Badge key={filter} variant="secondary" className="text-xs">
-                      {filter}
+                  {searchTerm && (
+                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                      Search: {searchTerm}
+                      <X 
+                        className="w-3 h-3 cursor-pointer" 
+                        onClick={() => setSearchTerm('')}
+                      />
+                    </Badge>
+                  )}
+                  {selectedStatus.map((status) => (
+                    <Badge key={status} variant="secondary" className="text-xs flex items-center gap-1">
+                      Status: {statusOptions.find(opt => opt.value === status)?.label}
+                      <X 
+                        className="w-3 h-3 cursor-pointer" 
+                        onClick={() => setSelectedStatus(prev => prev.filter(s => s !== status))}
+                      />
                     </Badge>
                   ))}
+                  {selectedTypes.map((type) => (
+                    <Badge key={type} variant="secondary" className="text-xs flex items-center gap-1">
+                      Type: {typeOptions.find(opt => opt.value === type)?.label}
+                      <X 
+                        className="w-3 h-3 cursor-pointer" 
+                        onClick={() => setSelectedTypes(prev => prev.filter(t => t !== type))}
+                      />
+                    </Badge>
+                  ))}
+                  {selectedTags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs flex items-center gap-1">
+                      Tag: {tag}
+                      <X 
+                        className="w-3 h-3 cursor-pointer" 
+                        onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                      />
+                    </Badge>
+                  ))}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearAllFilters}
+                    className="text-xs h-6 px-2"
+                  >
+                    Clear All
+                  </Button>
                 </div>
               )}
             </div>
@@ -252,13 +370,14 @@ export default function Lobbies() {
         {!loading && !error && (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {hackathons.map((hackathon, index) => (
+              {filteredHackathons.map((hackathon, index) => (
                 <motion.div
                   key={hackathon._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => handleHackathonClick(hackathon._id)}
+                  className="cursor-pointer"
                 >
                   <GlassCard 
                     variant="interactive" 
@@ -303,7 +422,9 @@ export default function Lobbies() {
                           <span className="text-foreground font-medium">
                             {formatTimeLeft(hackathon.startDate)}
                           </span>
-                          <span className="text-muted-foreground">to start</span>
+                          <span className="text-muted-foreground">
+                            {new Date(hackathon.startDate) > new Date() ? 'to start' : 'since start'}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="w-4 h-4 text-neon-lime" />
@@ -359,10 +480,10 @@ export default function Lobbies() {
                             variant="neon" 
                             size="sm" 
                             className="gap-2"
-                            disabled={hackathon.status !== 'registration_open'}
+                            disabled={isRegistrationClosed(hackathon)}
                           >
                             <Zap className="w-4 h-4" />
-                            {hackathon.status === 'registration_open' ? 'Join Now' : 'Registration Closed'}
+                            {isRegistrationClosed(hackathon) ? 'Registration Closed' : 'Join Now'}
                           </Button>
                         </div>
                       </div>
@@ -394,7 +515,7 @@ export default function Lobbies() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && hackathons.length === 0 && (
+        {!loading && !error && filteredHackathons.length === 0 && (
           <GlassCard className="p-12 text-center">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="font-orbitron text-xl text-foreground mb-2">No hackathons found</h3>
@@ -403,12 +524,7 @@ export default function Lobbies() {
             </p>
             <Button 
               variant="outline"
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('All');
-                setSelectedTypes([]);
-                setSelectedTags([]);
-              }}
+              onClick={clearAllFilters}
             >
               Clear Filters
             </Button>

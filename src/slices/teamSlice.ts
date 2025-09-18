@@ -1,7 +1,7 @@
-mport { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface Message {
-  id: number; // Added missing id field
+  id: number;
   teamId: string;
   senderId: string;
   text: string;
@@ -34,22 +34,22 @@ const initialState: TeamState = {
   messages: [
     {
       id: 1,
-      teamId: 'team-1', // Added missing teamId
-      senderId: 'user-1', // Changed from 'sender' to 'senderId'
+      teamId: 'team-1',
+      senderId: 'user-1',
       text: 'Hey team, ready to build?',
       time: '10:30 AM',
       status: 'seen'
     },
     {
       id: 2,
-      teamId: 'team-1', // Added missing teamId
-      senderId: 'user-2', // Changed from 'sender' to 'senderId'
+      teamId: 'team-1',
+      senderId: 'user-2',
       text: "Yep! Let's crush this hackathon 🚀",
       time: '10:31 AM',
       status: 'seen'
     },
   ],
-  currentUser: 'user-1', // Changed to use ID instead of name
+  currentUser: 'user-1',
 };
 
 const teamSlice = createSlice({
@@ -69,20 +69,26 @@ const teamSlice = createSlice({
       };
       state.messages.push(newMessage);
     },
-    // updateMessageStatus: (state, action: PayloadAction<{ id: number; status: 'sent' | 'delivered' | 'seen' }>) => {
-    //   const { id, status } = action.payload;
-    //   const message = state.messages.find(m => m.id === id);
-    //   if (message) {
-    //     message.status = status;
-    //   }
-    // },
+    updateMessageStatus: (
+      state,
+      action: PayloadAction<{ id: number; status: 'sent' | 'delivered' | 'seen' }>
+    ) => {
+      const { id, status } = action.payload;
+      const message = state.messages.find(m => m.id === id);
+      if (message) {
+        message.status = status;
+      }
+    },
     setCurrentUser: (state, action: PayloadAction<string>) => {
       state.currentUser = action.payload;
     },
     clearMessages: (state) => {
       state.messages = [];
     },
-    updateMemberStatus: (state, action: PayloadAction<{ id: number; status: 'active' | 'away' | 'offline' }>) => {
+    updateMemberStatus: (
+      state,
+      action: PayloadAction<{ id: number; status: 'active' | 'away' | 'offline' }>
+    ) => {
       const { id, status } = action.payload;
       const member = state.members.find(m => m.id === id);
       if (member) {
@@ -101,4 +107,5 @@ export const {
   clearMessages,
   updateMemberStatus,
 } = teamSlice.actions;
+
 export default teamSlice.reducer;
