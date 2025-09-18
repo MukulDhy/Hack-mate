@@ -13,7 +13,7 @@ import { showError, showSuccess } from '@/components/ui/ToasterMsg';
 import { joinHackathon, leaveHackathon } from '@/store/slices/userCurrrentHacthon';
 
 // Countdown Timer Component
-const CountdownTimer = ({ targetDate, label, onComplete }) => {
+const CountdownTimer = ({ targetDate, label, onComplete, onStartTimeReached }) => {
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
   function calculateTimeLeft() {
@@ -23,6 +23,10 @@ const CountdownTimer = ({ targetDate, label, onComplete }) => {
 
     if (difference <= 0) {
       onComplete && onComplete();
+      // Check if this is the start time countdown
+      if (label.includes('starts')) {
+        onStartTimeReached && onStartTimeReached();
+      }
       return null;
     }
 
@@ -89,6 +93,7 @@ const HackathonDetailsPage = () => {
     nextDeadline: null,
     nextDeadlineLabel: ''
   });
+  const [startTimeReached, setStartTimeReached] = useState(false);
 
   const { id } = useParams();
   const navigate = useNavigate();
@@ -155,6 +160,29 @@ const HackathonDetailsPage = () => {
       setHackathonState(state);
     }
   }, [hackathonData, isJoined]);
+
+  // Handle navigation to team page when start time is reached
+  useEffect(() => {
+    if (startTimeReached && isJoined) {
+      // Add a small delay to show the transition
+      const timer = setTimeout(() => {
+        // Add animation class to body for page transition
+        document.body.classList.add('page-transition');
+        
+        // Navigate to team page after a short delay for animation
+        setTimeout(() => {
+          navigate(`/team}`, {
+            state: { 
+              hackathonData,
+              animation: true 
+            }
+          });
+        }, 500); // Match this with your CSS transition duration
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [startTimeReached, isJoined, id, navigate, hackathonData]);
 
   const fetchHackathonData = async () => {
     try {
@@ -381,6 +409,11 @@ const HackathonDetailsPage = () => {
                     // Refresh hackathon state when countdown completes
                     const newState = calculateHackathonState(hackathonData);
                     setHackathonState(newState);
+                  }}
+                  onStartTimeReached={() => {
+                    if (hackathonState.nextDeadlineLabel.includes('starts')) {
+                      setStartTimeReached(true);
+                    }
                   }}
                 />
               </section>

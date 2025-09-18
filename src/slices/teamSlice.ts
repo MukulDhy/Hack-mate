@@ -19,12 +19,14 @@ interface TeamMember {
 }
 
 interface TeamState {
+  teamName?: string;
   members: TeamMember[];
   messages: Message[];
   currentUser: string;
 }
 
 const initialState: TeamState = {
+  teamName: 'Innovators United',
   members: [
     { id: 1, name: 'Alex Johnson', role: 'Team Lead', status: 'active', avatar: 'AJ' },
     { id: 2, name: 'Sarah Chen', role: 'Frontend Dev', status: 'active', avatar: 'SC' },

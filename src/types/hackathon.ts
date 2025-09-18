@@ -97,3 +97,24 @@ export interface HackathonFormData extends Omit<Hackathon, 'registrationDeadline
   winnerAnnouncementDate?: Date | null;
   submissionDeadline?: Date | null;
 }
+
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  role: string;
+  status: string;
+  avatar: string;
+}
+
+export interface TeamData {
+  members: TeamMember[];
+  currentUser: string;
+}
+
+export interface Message {
+  sender: string;
+  text: string;
+  time: string;
+  status: 'sent' | 'delivered' | 'seen';
+}

@@ -26,29 +26,8 @@ import { addMessage, updateMessageStatus } from '../slices/teamSlice';
 import { changeConnect } from '@/store/slices/websocketSlice';
 import { useUser } from '@/store/hooks';
 import { webSocketService } from '@/store';
-import { Hackathon } from '@/types/hackathon';
+import { Hackathon,TeamData,TeamMember,Message } from '@/types/hackathon';
 import { showWarning } from '@/components/ui/ToasterMsg';
-
-
-interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  status: string;
-  avatar: string;
-}
-
-interface TeamData {
-  members: TeamMember[];
-  currentUser: string;
-}
-
-interface Message {
-  sender: string;
-  text: string;
-  time: string;
-  status: 'sent' | 'delivered' | 'seen';
-}
 
 export default function TeamChat() {
   const dispatch = useAppDispatch();
@@ -77,16 +56,15 @@ export default function TeamChat() {
     tags: hackathon?.tags || ['AI', 'Collaboration', 'Innovation', 'SaaS'],
 
   };
- 
-  const teamData: TeamData = {
+
+  const teamData: TeamData = useAppSelector((state) => state.team) || {
+    teamName: 'Innovators United',
     members: [
-      { id: 1, name: 'Alex Johnson', role: 'Team Lead', status: 'active', avatar: 'AJ' },
-      { id: 2, name: 'Sarah Chen', role: 'Frontend Dev', status: 'active', avatar: 'SC' },
-      { id: 3, name: 'Mike Rodriguez', role: 'Backend Dev', status: 'away', avatar: 'MR' },
-      { id: 4, name: 'Emma Davis', role: 'UI/UX Designer', status: 'active', avatar: 'ED' }
+      { id: '1', name: 'Alice Johnson', role: 'Team Lead', avatar: 'AJ', status: 'active' },
+      { id: '2', name: 'Bob Smith', role: 'Developer', avatar: 'BS', status: 'active' },
+      { id: '3', name: 'Charlie Brown', role: 'Designer', avatar: 'CB', status: 'inactive' },
     ],
-    currentUser: 'Alex Johnson'
-  };
+  };  
 
   const [newMessage, setNewMessage] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<string>('23:59:51');
