@@ -57,6 +57,7 @@ class WebSocketService {
     };
 
     this.socket.onerror = (error) => {
+      console.log(error)
       console.error("WebSocket error:", error);
       this.store.dispatch({
         type: "websocket/setError",

@@ -14,11 +14,12 @@ import {
   FileText,
   Plus,
   DollarSign,
-  Send
+  Send,
+  Check,
+  CheckCheck
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../hooks/redux-hooks';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAppSelector } from '../hooks/redux-hooks';
 import { useTeamMessages, useOnlineUsers } from '@/hooks/websocketHooks';
 import { useTeam } from '../hooks/teamHook';
 import { useUser } from '../hooks/authHook';
@@ -27,38 +28,33 @@ import { webSocketService } from '@/store';
 import { Hackathon, TeamMember } from '@/types/hackathon';
 
 export default function TeamChat() {
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const { currentUser } = useAppSelector((state) => state.team);
   const { hackathon } = useAppSelector((state) => state.userHack);
   const teamData = useAppSelector((state) => state.team);
   const { user } = useUser();
-  const { team, initializeTeam } = useTeam();
-
-  // Initialize team on mount
-  useEffect(() => {
-    if (user && hackathon?._id) {
-      initializeTeam(hackathon?._id);
-    }
-  }, [user, hackathon?._id, initializeTeam]);
-  
-  // Assume teamId is available from team state or route param
-  const teamId = teamData.teamName || 'team-1';
+  const { initializeTeam, loadMessages } = useTeam();
+  const teamId = teamData.team?._id || '';
   const teamMembers = teamData.members || [];
   
   const { messages } = useTeamMessages(teamId);
   const onlineUsers = useOnlineUsers(teamId);
   const [newMessage, setNewMessage] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<string>('23:59:51');
-  const { isAuthenticated, token } = useUser();
-  const { isConnected } = useAppSelector((state) => state.websocket);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize team on mount
+  useEffect(() => {
+    if (user && hackathon?._id) {
+      initializeTeam(hackathon._id);
+      loadMessages(teamId);
+    }
+  }, [user, hackathon?._id, initializeTeam,]);
 
   // Safely create hackathonData with fallback values
   const hackathonData: Hackathon = {
     title: hackathon?.title || 'AI Innovation Challenge',
-    description: hackathon?.description || 'Build an AI-powered collaboration tool that revolutionizes how teams work together in virtual environments. Focus on creating innovative solutions that enhance productivity and communication.',
+    description: hackathon?.description || 'Build an AI-powered collaboration tool that revolutionizes how teams work together in virtual environments.',
     startDate: hackathon?.startDate || '2025-09-10T09:00:00Z',
     endDate: hackathon?.endDate || '2025-09-12T18:00:00Z',
     submissionDeadline: hackathon?.submissionDeadline || '2025-09-12T17:00:00Z',
@@ -76,42 +72,12 @@ export default function TeamChat() {
     tags: hackathon?.tags || ['AI', 'Collaboration', 'Innovation', 'SaaS'],
   };
 
-  // Send presence on mount/unmount
-  useEffect(() => {
-    // Optionally, send a presence update here if backend supports it
-    // webSocketService.sendPresence(teamId, true);
-    return () => {
-      // webSocketService.sendPresence(teamId, false);
-    };
-  }, [teamId]);
-
   // Auto-scroll to bottom on new message
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-    if (newMessage.trim().length > 1000) {
-      showWarning('Message is too long. Please keep it under 1000 characters.', 'Message Validate');
-      return;
-    }
-    // Prevent duplicate spam
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.text === newMessage.trim() && lastMessage.senderId === currentUser) {
-      showWarning('Please avoid sending duplicate messages.', 'Message Validate');
-      return;
-    }
-    webSocketService.sendTeamMessage(teamId, newMessage.trim());
-    setNewMessage('');
-    if (inputRef.current) inputRef.current.focus();
-  };
-
-  // Format date utility
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -119,21 +85,43 @@ export default function TeamChat() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
+  }, []);
 
-  // Status icon
-  const getStatusIcon = (status: string, isOwnMessage: boolean) => {
+  const getStatusIcon = useCallback((status: string, isOwnMessage: boolean) => {
     if (!isOwnMessage) return null;
+    
     switch (status) {
       case 'sent':
-        return <span title="Sent">✓</span>;
+        return <Check className="w-3 h-3 ml-1" title="Sent" />;
       case 'delivered':
-        return <span title="Delivered">✓✓</span>;
+        return <CheckCheck className="w-3 h-3 ml-1" title="Delivered" />;
       case 'seen':
-        return <span title="Seen" style={{ color: '#0ea5e9' }}>✓✓</span>;
+        return <CheckCheck className="w-3 h-3 ml-1 text-blue-500" title="Seen" />;
       default:
         return null;
     }
+  }, []);
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim()) return;
+    
+    if (newMessage.trim().length > 1000) {
+      showWarning('Message is too long. Please keep it under 1000 characters.', 'Message Validate');
+      return;
+    }
+    
+    // Prevent duplicate spam
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.text === newMessage.trim() && lastMessage.senderId === currentUser) {
+      showWarning('Please avoid sending duplicate messages.', 'Message Validate');
+      return;
+    }
+    
+    webSocketService.sendTeamMessage(teamId, newMessage.trim());
+    setNewMessage('');
+    inputRef.current?.focus();
   };
 
   return (
@@ -246,7 +234,7 @@ export default function TeamChat() {
                 <div className="h-80 xs:h-96 overflow-y-auto space-y-3 mb-4 custom-scrollbar">
                   {messages.map((msg, idx) => (
                     <div key={msg.id || idx} className={`flex flex-col ${msg.senderId === currentUser ? 'items-end' : 'items-start'}`}>
-                      <div className={`rounded-lg px-3 py-2 ${msg.senderId === currentUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
+                      <div className={`rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md ${msg.senderId === currentUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
                         <span className="font-semibold mr-2">{teamMembers.find(m => m.id === msg.senderId)?.name || msg.senderId}</span>
                         {msg.text}
                         {getStatusIcon(msg.status, msg.senderId === currentUser)}
