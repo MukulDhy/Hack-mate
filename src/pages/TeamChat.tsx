@@ -12,41 +12,36 @@ import {
   MapPin,
   Target,
   FileText,
-  AlertCircle,
-  Send,
   Plus,
   DollarSign,
-  Check,
-  CheckCheck
+  Send
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/redux-hooks';
-import { addMessage, updateMessageStatus } from '../slices/teamSlice';
-import { changeConnect } from '@/store/slices/websocketSlice';
-import { useUser } from '@/store/hooks';
-import { webSocketService } from '@/store';
-import { Hackathon, TeamData, TeamMember, Message } from '@/types/hackathon';
-import { showWarning } from '@/components/ui/ToasterMsg';
 import { useTeamMessages, useOnlineUsers } from '@/hooks/websocketHooks';
-import { useTeam } from '../hooks/useTeam';
-import { useUser } from '../hooks/useUser';
+import { useTeam } from '../hooks/teamHook';
+import { useUser } from '../hooks/authHook';
+import { showWarning } from '@/components/ui/ToasterMsg';
+import { webSocketService } from '@/store';
+import { Hackathon, TeamMember } from '@/types/hackathon';
+
 export default function TeamChat() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { currentUser } = useAppSelector((state) => state.team);
   const { hackathon } = useAppSelector((state) => state.userHack);
   const teamData = useAppSelector((state) => state.team);
-const { user } = useUser();
-  const { team, messages, initializeTeam, loadMessages, sendTeamMessage } = useTeam();
+  const { user } = useUser();
+  const { team, initializeTeam } = useTeam();
 
   // Initialize team on mount
-
-useEffect(() => {
+  useEffect(() => {
     if (user && hackathon?._id) {
       initializeTeam(hackathon?._id);
     }
   }, [user, hackathon?._id, initializeTeam]);
+  
   // Assume teamId is available from team state or route param
   const teamId = teamData.teamName || 'team-1';
   const teamMembers = teamData.members || [];
@@ -55,8 +50,8 @@ useEffect(() => {
   const onlineUsers = useOnlineUsers(teamId);
   const [newMessage, setNewMessage] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<string>('23:59:51');
-  const { user, isAuthenticated, token } = useUser();
-  const { connectWs, isConnected } = useAppSelector((state) => state.websocket);
+  const { isAuthenticated, token } = useUser();
+  const { isConnected } = useAppSelector((state) => state.websocket);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 

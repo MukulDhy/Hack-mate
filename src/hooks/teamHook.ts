@@ -1,7 +1,7 @@
 // hooks/useTeam.ts
 import { useDispatch, useSelector } from 'react-redux';
 import { useCallback } from 'react';
-import { useUser } from './useUser';
+import { useUser } from '../hooks/authHook';
 import { 
   fetchUserTeam, 
   fetchTeamMessages, 
@@ -19,35 +19,18 @@ export const useTeam = () => {
   // Initialize team with current user
   const initializeTeam = useCallback((hackathonId: string) => {
     if (user) {
-      dispatch(setCurrentUser(user.id));
-      dispatch(fetchUserTeam({ userId: user.id, hackathonId }));
+      dispatch(setCurrentUser(user?._id));
+      dispatch(fetchUserTeam({ userId: user?._id, hackathonId }));
     }
   }, [dispatch, user]);
 
-  // Load team messages
   const loadMessages = useCallback((teamId: string, page?: number) => {
     dispatch(fetchTeamMessages({ teamId, page }));
   }, [dispatch]);
-
-  // Send a message
-  const sendTeamMessage = useCallback(async (teamId: string, text: string, messageType?: string) => {
-    // Optimistically add message to UI
-    dispatch(addLocalMessage({
-      teamId,
-      senderId: user?.id || '',
-      text,
-      messageType,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }));
-    
-    // Send to server
-    return dispatch(sendMessage({ teamId, text, messageType })).unwrap();
-  }, [dispatch, user]);
-
   return {
     ...teamState,
     initializeTeam,
     loadMessages,
-    sendTeamMessage,
+
   };
 };

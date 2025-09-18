@@ -6,7 +6,7 @@ import webSocketReducer from './slices/websocketSlice'
 import { initWebSocketService } from '../service/websocketService';
 import hackathonReducer from './slices/hackathonSlice';
 import userHackathonReducer from "./slices/userCurrrentHacthon"
-import teamReducer from "../slices/teamSlice"
+import teamReducer from "./slices/teamSlice"
 export const store = configureStore({
   reducer: {
     auth: authReducer,

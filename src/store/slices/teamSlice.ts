@@ -1,7 +1,8 @@
 // teamSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { teamService, Team, Message as APIMessage } from '../services/teamService';
-import { useUser } from '../hooks/useUser'; // Your user hook
+import { teamService, Team, Message as APIMessage } from '../../service/teamService';
+import { useUser } from '../../hooks/authHook';
+ // Your user hook
 
 // Update interfaces to match backend models
 interface TeamMember {

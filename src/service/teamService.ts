@@ -1,5 +1,5 @@
 // services/teamService.ts
-import api from './api'; // Your configured axios instance
+import {api} from './api'; // Your configured axios instance
 
 export interface Team {
   _id: string;
