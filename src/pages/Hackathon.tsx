@@ -8,7 +8,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '@/config/API_URL';
-import { useAppDispatch, useAppSelector, useUser } from '@/store/hooks';
+import { useAppDispatch, useAppSelector, useUser } from '@/hooks/authHook';
 import { showError, showSuccess } from '@/components/ui/ToasterMsg';
 import { joinHackathon, leaveHackathon } from '@/store/slices/userCurrrentHacthon';
 

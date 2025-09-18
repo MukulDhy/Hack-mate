@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
-import { useUser } from '@/store/hooks';
+import { useUser } from '@/hooks/authHook';
 import { logoutUser } from '@/store/slices/authSlice';
 import { showSuccess } from '../ui/ToasterMsg';
 

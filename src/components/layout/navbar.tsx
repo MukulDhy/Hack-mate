@@ -6,7 +6,7 @@ import { HackMateLogoProfessional } from '@/components/ui/hackmate-logo-professi
 import { Menu, X, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useUser } from '@/store/hooks';
+import { useUser } from '@/hooks/authHook';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard' },

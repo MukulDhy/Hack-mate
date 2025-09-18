@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { webSocketService } from '@/store';
 import { useWebSocket } from '@/hooks/websocketHooks';
-import { useAuth } from '@/store/hooks';
+import { useAuth } from '@/hooks/authHook';
 
 const WebSocketManager = () => {
   const { isAuthenticated, user } = useAuth();

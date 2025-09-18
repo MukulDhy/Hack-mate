@@ -13,7 +13,7 @@ import { API_URL } from "../config/API_URL";
 import axios from "axios";
 import { showError, showSuccess } from '@/components/ui/ToasterMsg';
 import { loginUser } from '@/store/slices/authSlice';
-import { useAppDispatch, useUser } from '@/store/hooks';
+import { useAppDispatch, useUser } from '@/hooks/authHook';
 
 function getErrorMessage(errorPayload) {
   if (!errorPayload) {

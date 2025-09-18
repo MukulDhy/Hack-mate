@@ -1,6 +1,6 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth, useUser } from './store/hooks';
+import { useAuth, useUser } from './hooks/authHook';
 import { verifyToken } from './store/slices/authSlice';
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";

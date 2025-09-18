@@ -16,7 +16,7 @@ import {
   Award,
   Plus
 } from 'lucide-react';
-import { useUser } from '@/store/hooks';
+import { useUser } from '@/hooks/authHook';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 

@@ -9,7 +9,7 @@ import { BackgroundScene } from '@/components/3d/background-scene';
 import { Eye, EyeOff, Mail, Lock, User, Github, Chrome, Loader2 } from 'lucide-react';
 import { showSuccess, showWarning } from '@/components/ui/ToasterMsg';
 import { registerUser } from '@/store/slices/authSlice';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch } from '@/hooks/authHook';
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
