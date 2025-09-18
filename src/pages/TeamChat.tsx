@@ -19,22 +19,37 @@ import {
   Check,
   CheckCheck
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/redux-hooks';
 import { addMessage, updateMessageStatus } from '../slices/teamSlice';
 import { changeConnect } from '@/store/slices/websocketSlice';
 import { useUser } from '@/store/hooks';
 import { webSocketService } from '@/store';
-import { Hackathon,TeamData,TeamMember,Message } from '@/types/hackathon';
+import { Hackathon, TeamData, TeamMember, Message } from '@/types/hackathon';
 import { showWarning } from '@/components/ui/ToasterMsg';
+import { useTeamMessages, useOnlineUsers } from '@/hooks/websocketHooks';
 
 export default function TeamChat() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { messages, currentUser } = useAppSelector((state) => state.team);
+  const { currentUser } = useAppSelector((state) => state.team);
   const { hackathon } = useAppSelector((state) => state.userHack);
+  const teamData = useAppSelector((state) => state.team);
   
+  // Assume teamId is available from team state or route param
+  const teamId = teamData.teamName || 'team-1';
+  const teamMembers = teamData.members || [];
+  
+  const { messages } = useTeamMessages(teamId);
+  const onlineUsers = useOnlineUsers(teamId);
+  const [newMessage, setNewMessage] = useState<string>('');
+  const [timeLeft, setTimeLeft] = useState<string>('23:59:51');
+  const { user, isAuthenticated, token } = useUser();
+  const { connectWs, isConnected } = useAppSelector((state) => state.websocket);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
   // Safely create hackathonData with fallback values
   const hackathonData: Hackathon = {
     title: hackathon?.title || 'AI Innovation Challenge',
@@ -54,119 +69,63 @@ export default function TeamChat() {
     ],
     submissionFormat: hackathon?.submissionFormat || 'GitHub repository + Live demo + Presentation slides',
     tags: hackathon?.tags || ['AI', 'Collaboration', 'Innovation', 'SaaS'],
-
   };
 
-  const teamData: TeamData = useAppSelector((state) => state.team) || {
-    teamName: 'Innovators United',
-    members: [
-      { id: '1', name: 'Alice Johnson', role: 'Team Lead', avatar: 'AJ', status: 'active' },
-      { id: '2', name: 'Bob Smith', role: 'Developer', avatar: 'BS', status: 'active' },
-      { id: '3', name: 'Charlie Brown', role: 'Designer', avatar: 'CB', status: 'inactive' },
-    ],
-  };  
-
-  const [newMessage, setNewMessage] = useState<string>('');
-  const [timeLeft, setTimeLeft] = useState<string>('23:59:51');
- const {user,isAuthenticated,token} =  useUser();
-  const {connectWs,isConnected} = useAppSelector((state) => state.websocket);
+  // Send presence on mount/unmount
   useEffect(() => {
-    // Simulate message read status updates
-    const timer = setTimeout(() => {
-      messages.forEach((msg: Message, index: number) => {
-        if (msg.sender !== currentUser && !msg.seen) {
-          // Simulate other users reading messages after a delay
-          setTimeout(() => {
-            dispatch(updateMessageStatus({ index, status: 'seen' }));
-          }, 1000 + (index * 500));
-        }
-      });
-    }, 1000);
+    // Optionally, send a presence update here if backend supports it
+    // webSocketService.sendPresence(teamId, true);
+    return () => {
+      // webSocketService.sendPresence(teamId, false);
+    };
+  }, [teamId]);
 
-    return () => clearTimeout(timer);
-  }, [messages, currentUser, dispatch]);
-
-
-useEffect(() => {
-  // ✅ When this page loads, request connection
-  dispatch(changeConnect({ changeStatus: true }));
-
-  if (!isConnected && isAuthenticated && token) {
-    webSocketService.connect(token);
-  }
-
-  // ✅ Clean up when leaving page
-  return () => {
-    dispatch(changeConnect({ changeStatus: false }));
-    if (isConnected) {
-      webSocketService.disconnect();
+  // Auto-scroll to bottom on new message
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  };
-}, [dispatch, isAuthenticated, token, isConnected]);
+  }, [messages]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Message validation
-    if (!newMessage.trim()) {
-      return; // Don't send empty messages
-    }
-
+    if (!newMessage.trim()) return;
     if (newMessage.trim().length > 1000) {
-      showWarning('Message is too long. Please keep it under 1000 characters.',"Message Validate");
+      showWarning('Message is too long. Please keep it under 1000 characters.', 'Message Validate');
       return;
     }
-
-    if (newMessage.trim().length < 1) {
-      return; // Don't send messages with only whitespace
-    }
-
-    // Check for spam (same message sent repeatedly)
+    // Prevent duplicate spam
     const lastMessage = messages[messages.length - 1];
-    if (
-      lastMessage &&
-      lastMessage.text === newMessage.trim() &&
-      lastMessage.sender === currentUser
-    ) {
-    showWarning('Please avoid sending duplicate messages.',"Message Validate");
+    if (lastMessage && lastMessage.text === newMessage.trim() && lastMessage.senderId === currentUser) {
+      showWarning('Please avoid sending duplicate messages.', 'Message Validate');
       return;
     }
-
-    dispatch(
-      addMessage({
-        sender: currentUser,
-        text: newMessage.trim(),
-        time: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        status: 'sent' // Initial status when message is sent
-      }),
-    );
+    webSocketService.sendTeamMessage(teamId, newMessage.trim());
     setNewMessage('');
+    if (inputRef.current) inputRef.current.focus();
   };
 
-  const formatDate = (dateString: string): string => {
+  // Format date utility
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  // Function to get the status icon based on message status
-  const getStatusIcon = (status: string, isOwnMessage: boolean): JSX.Element | null => {
+  // Status icon
+  const getStatusIcon = (status: string, isOwnMessage: boolean) => {
     if (!isOwnMessage) return null;
-    
-    switch(status) {
+    switch (status) {
       case 'sent':
-        return <Check className="w-3 h-3" />;
+        return <span title="Sent">✓</span>;
       case 'delivered':
-        return <CheckCheck className="w-3 h-3" />;
+        return <span title="Delivered">✓✓</span>;
       case 'seen':
-        return <CheckCheck className="w-3 h-3 text-primary" />;
+        return <span title="Seen" style={{ color: '#0ea5e9' }}>✓✓</span>;
       default:
         return null;
     }
@@ -189,7 +148,6 @@ useEffect(() => {
               Team Collaboration Hub
             </p>
           </div>
-          
           <div className="bg-background/80 backdrop-blur-sm rounded-lg px-4 xs:px-6 py-3 xs:py-4 border border-border">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-4 xs:w-5 h-4 xs:h-5 text-primary" />
@@ -205,177 +163,105 @@ useEffect(() => {
           {/* Main Content */}
           <div className="xl:col-span-2 space-y-4 xs:space-y-5 sm:space-y-6">
             {/* Hackathon Details */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
               <GlassCard className="p-4 xs:p-5 sm:p-6">
                 <div className="flex items-start gap-3 mb-4">
                   <div className="w-10 xs:w-12 h-10 xs:h-12 bg-gradient-primary rounded-lg flex items-center justify-center flex-shrink-0">
                     <Target className="w-5 xs:w-6 h-5 xs:h-6 text-primary-foreground" />
                   </div>
-                  <div className="flex-1">
-                    <h2 className="font-orbitron font-bold text-lg xs:text-xl text-foreground mb-2">
-                      Challenge Overview
+                  <div>
+                    <h2 className="font-orbitron font-bold text-xl xs:text-2xl text-foreground mb-2">
+                      {hackathonData.title}
                     </h2>
-                    <p className="text-sm xs:text-base text-muted-foreground mb-4">
+                    <p className="text-muted-foreground text-sm xs:text-base">
                       {hackathonData.description}
                     </p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Duration:</span>
-                          <span className="text-foreground">
-                            {(() => {
-                              const start = new Date(hackathonData.startDate);
-                              const end = new Date(hackathonData.endDate);
-                              const diffMs = end.getTime() - start.getTime();
-                              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                              return `${diffHours} hours`;
-                            })()} - {formatDate(hackathonData.endDate)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Mode:</span>
-                          <span className="text-foreground capitalize">{hackathonData.mode}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Users className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Max team size:</span>
-                          <span className="text-foreground">{hackathonData.maxTeamSize}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <FileText className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Submission:</span>
-                          <span className="text-foreground text-xs">{hackathonData.submissionFormat}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <AlertCircle className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Status:</span>
-                          <Badge variant="default" className="text-xs">
-                            {hackathonData.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <DollarSign className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Entry Fee:</span>
-                          <span className="text-foreground">${hackathonData.registrationFee}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {hackathonData.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <span className="text-muted-foreground">Starts:</span>
+                    <span className="text-foreground">{formatDate(hackathonData.startDate)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <span className="text-muted-foreground">Ends:</span>
+                    <span className="text-foreground">{formatDate(hackathonData.endDate)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span className="text-muted-foreground">Venue:</span>
+                    <span className="text-foreground">{hackathonData.venue}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    <span className="text-muted-foreground">Fee:</span>
+                    <span className="text-foreground">${hackathonData.registrationFee}</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mt-6">
+                  {hackathonData.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
               </GlassCard>
             </motion.div>
 
             {/* Problem Statements */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
               <GlassCard className="p-4 xs:p-5 sm:p-6">
                 <h3 className="font-orbitron font-bold text-lg text-foreground mb-4 flex items-center gap-2">
                   <Target className="w-5 h-5 text-primary" />
                   Problem Statements
                 </h3>
                 <div className="prose prose-sm max-w-none">
-                  <p className="text-foreground text-sm xs:text-base leading-relaxed">
-                    Choose from the following challenge areas: {hackathonData.problemStatements.join('; ')}. 
-                    Teams can focus on any one of these areas or create innovative solutions that combine multiple aspects. 
-                    Your solution should demonstrate creativity, technical excellence, and practical applicability to real-world scenarios.
-                  </p>
+                  <ul className="space-y-2">
+                    {hackathonData.problemStatements.map((statement, index) => (
+                      <li key={index} className="text-foreground">
+                        {statement}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </GlassCard>
             </motion.div>
 
             {/* Team Chat */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
               <GlassCard className="p-4 xs:p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <MessageSquare className="w-5 h-5 text-primary" />
-                  <h3 className="font-orbitron font-bold text-lg text-foreground">
-                    Team Chat
-                  </h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {messages.length} messages
-                  </Badge>
+                  <span className="font-bold text-lg">Team Chat</span>
                 </div>
-
-                {/* Chat Messages */}
                 <div className="h-80 xs:h-96 overflow-y-auto space-y-3 mb-4 custom-scrollbar">
-                  {messages.length === 0 ? (
-                    <div className="text-center text-sm text-muted-foreground py-12">
-                      No messages yet — start the conversation!
+                  {messages.map((msg, idx) => (
+                    <div key={msg.id || idx} className={`flex flex-col ${msg.senderId === currentUser ? 'items-end' : 'items-start'}`}>
+                      <div className={`rounded-lg px-3 py-2 ${msg.senderId === currentUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
+                        <span className="font-semibold mr-2">{teamMembers.find(m => m.id === msg.senderId)?.name || msg.senderId}</span>
+                        {msg.text}
+                        {getStatusIcon(msg.status, msg.senderId === currentUser)}
+                      </div>
+                      <span className="text-xs text-muted-foreground mt-1">{formatDate(msg.time)}</span>
                     </div>
-                  ) : (
-                    messages.map((msg: Message, index: number) => {
-                      const isOwnMessage = msg.sender === currentUser;
-                      return (
-                        <div
-                          key={index}
-                          className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`px-3 py-2 rounded-lg max-w-xs ${
-                              isOwnMessage
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-foreground'
-                            }`}
-                          >
-                            {!isOwnMessage && (
-                              <p className="text-sm font-medium mb-1">
-                                {msg.sender}
-                              </p>
-                            )}
-                            <p className="text-sm">{msg.text}</p>
-                            <div className="flex items-center justify-end gap-1 mt-1">
-                              <p className="text-xs opacity-70">{msg.time}</p>
-                              {getStatusIcon(msg.status, isOwnMessage)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                  ))}
+                  <div ref={chatEndRef} />
                 </div>
-
-                {/* Chat Input */}
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                   <input
+                    ref={inputRef}
                     type="text"
                     placeholder="Type your message... (Enter to send)"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <Button
-                    type="submit"
-                    variant="hero"
-                    size="sm"
-                    className="px-4 flex items-center gap-2"
-                  >
+                  <Button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
                     <Send className="w-4 h-4" />
-                    Send
                   </Button>
                 </form>
               </GlassCard>
@@ -385,11 +271,7 @@ useEffect(() => {
           {/* Sidebar */}
           <div className="space-y-4 xs:space-y-5 sm:space-y-6">
             {/* Team Members */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
               <GlassCard className="p-4 xs:p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-orbitron font-bold text-lg text-foreground flex items-center gap-2">
@@ -397,12 +279,12 @@ useEffect(() => {
                     Team Members
                   </h3>
                   <Badge variant="secondary" className="text-xs">
-                    {teamData.members.length}/{hackathonData.maxTeamSize}
+                    {teamMembers.length}/{hackathonData.maxTeamSize}
                   </Badge>
                 </div>
                 
                 <div className="space-y-3">
-                  {teamData.members.map((member: TeamMember) => (
+                  {teamMembers.map((member: TeamMember) => (
                     <div key={member.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg border border-border">
                       <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-sm font-bold text-primary-foreground">
@@ -419,12 +301,12 @@ useEffect(() => {
                         <p className="text-muted-foreground text-xs">{member.role}</p>
                       </div>
                       <div className={`w-2 h-2 rounded-full ${
-                        member.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'
+                        onlineUsers[member.id] ? 'bg-green-500' : 'bg-yellow-500'
                       }`}></div>
                     </div>
                   ))}
                   
-                  {teamData.members.length < hackathonData.maxTeamSize && (
+                  {teamMembers.length < hackathonData.maxTeamSize && (
                     <Button 
                       variant="outline" 
                       className="w-full p-3 border-2 border-dashed border-primary/50 hover:border-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
@@ -438,11 +320,7 @@ useEffect(() => {
             </motion.div>
 
             {/* Submission */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
               <GlassCard className="p-4 xs:p-5 sm:p-6">
                 <h3 className="font-orbitron font-bold text-lg text-foreground mb-3 flex items-center gap-2">
                   <Upload className="w-5 h-5 text-primary" />
