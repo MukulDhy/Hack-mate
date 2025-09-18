@@ -57,7 +57,7 @@ export const useWebSocket = () => {
 
   // Auto-connect on mount and when token changes
   useEffect(() => {
-    if (token && !isConnected && connectWs) {
+    if (token && !isConnected) {
       connect();
     }
 

@@ -8,7 +8,7 @@ const WebSocketManager = () => {
   const { isConnected } = useWebSocket();
 
   useEffect(() => {
-    if (isAuthenticated && user?.token && connectWs) {
+    if (isAuthenticated && user?.token ) {
       webSocketService.connect(user.token);
     } else {
       webSocketService.disconnect();
