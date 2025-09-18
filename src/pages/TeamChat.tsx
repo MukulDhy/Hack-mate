@@ -29,14 +29,24 @@ import { webSocketService } from '@/store';
 import { Hackathon, TeamData, TeamMember, Message } from '@/types/hackathon';
 import { showWarning } from '@/components/ui/ToasterMsg';
 import { useTeamMessages, useOnlineUsers } from '@/hooks/websocketHooks';
-
+import { useTeam } from '../hooks/useTeam';
+import { useUser } from '../hooks/useUser';
 export default function TeamChat() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { currentUser } = useAppSelector((state) => state.team);
   const { hackathon } = useAppSelector((state) => state.userHack);
   const teamData = useAppSelector((state) => state.team);
-  
+const { user } = useUser();
+  const { team, messages, initializeTeam, loadMessages, sendTeamMessage } = useTeam();
+
+  // Initialize team on mount
+
+useEffect(() => {
+    if (user && hackathon?._id) {
+      initializeTeam(hackathon?._id);
+    }
+  }, [user, hackathon?._id, initializeTeam]);
   // Assume teamId is available from team state or route param
   const teamId = teamData.teamName || 'team-1';
   const teamMembers = teamData.members || [];
